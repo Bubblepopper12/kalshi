@@ -127,6 +127,8 @@ def get_league(code: str) -> League:
 
 
 GAME_SUFFIX = {"moneyline": "GAME", "spread": "SPREAD", "total": "TOTAL"}
+_PARTIAL_TITLE = re.compile(r"\b(1st|2nd|3rd|4th|first|second|third|fourth)\s+(half|quarter|period)\b"
+                            r"|\bhalftime\b|\bquarter\b", re.I)
 
 
 def game_series(league: League, series: list[dict], kind: str = "moneyline") -> list[dict]:
@@ -144,7 +146,13 @@ def game_series(league: League, series: list[dict], kind: str = "moneyline") -> 
     own = tuple(p for p in league.ticker_prefixes if not p.startswith("KXMVE"))
     found = []
     for ticker, s in by_ticker.items():
-        core = ticker[len(next((p for p in own if ticker.startswith(p)), "")):]
-        if ticker.startswith(own) and ticker.endswith(suffix) and not re.search(r"[1-4][HQ]|HALF|QUARTER", core):
-            found.append(s)
+        if not (ticker.startswith(own) and ticker.endswith(suffix)):
+            continue
+        core = ticker[len(next(p for p in own if ticker.startswith(p))):]
+        title = s.get("title") or ""
+        if re.search(r"[1-4][HQ]|HALF|QUARTER|QTR|PERIOD", core) or _PARTIAL_TITLE.search(title):
+            continue
+        if league.exclude_pattern and re.search(league.exclude_pattern, f"{ticker} {title}", re.I):
+            continue
+        found.append(s)
     return sorted(found, key=lambda s: len(s.get("ticker") or ""))[:2]

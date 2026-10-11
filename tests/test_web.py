@@ -136,7 +136,8 @@ def test_find_groups_games_and_hides_partial_markets(web, fake):
     assert 'id="q"' in r.text and 'id="count"' in r.text  # search box; the count is filled in by the browser
     assert "KXNFLGAME-26OCT18DALPHI" in r.text and "KXNBAGAME" not in r.text
     assert "Sun, Oct 18" in r.text and "NFL" in r.text
-    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;price=55" in r.text
+    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes" in r.text
+    assert "price=" not in r.text  # bet links never carry a price: the bet page starts from the live one
     assert "KXNFL2H" not in r.text  # half-game market hidden
     assert "KXSBL" not in r.text  # Slovak basketball is not the Super Bowl
     assert 'data-k="' in r.text and "sun sunday oct october 18" in r.text  # searchable by day
@@ -309,7 +310,7 @@ def test_picks_page_shows_a_pick_with_reasons(env, exchange, fake, monkeypatch):
     assert "Best picks" in best and "Philadelphia wins" in best and "Dallas wins" not in best
     assert "cheaper on Kalshi" in best and "Sportsbooks say" in best and "65% chance" in best
     assert "Pinnacle" in best and "480 sportsbook lookups left" in r.text
-    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;contracts=" in best and "price=58" in best
+    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;contracts=" in best and "price=" not in best
     every = r.text.split("Every game")[1]
     assert "Books 65%" in every and "Books 35%" in every  # both teams compared, even the non-pick
     assert "eagles" in every and "cowboys" in every  # nicknames are searchable
@@ -337,3 +338,38 @@ def test_bet_link_prefills_contracts_and_price(web):
     login(web)
     r = web.get(f"/bet?ticker={TICKER}&side=yes&contracts=7&price=58")
     assert 'value="7"' in r.text and 'value="58"' in r.text
+
+
+def test_all_leagues_survive_one_failing_league(env, exchange, fake):
+    def flaky(request):
+        if request.url.params.get("series_ticker") == "KXNBAGAME":
+            return httpx.Response(503)
+        return fake.handler(request)
+    fake.series.append({"ticker": "KXNBAGAME", "title": "Pro Basketball Game", "category": "Sports"})
+    app = create_app(trading_transport=httpx.MockTransport(exchange.handler), market_transport=httpx.MockTransport(flaky))
+    web = TestClient(app, base_url="https://testserver")
+    login(web)
+    r = web.get("/find")
+    assert "KXNFLGAME-26OCT18DALPHI" in r.text and "load NBA right now" in r.text
+
+
+def test_search_in_address_bar_and_kept_across_filters(web):
+    login(web)
+    r = web.get("/find?q=kc")
+    assert "KXNFLGAME-26OCT18KCBUF" in r.text and "KXNFLGAME-26OCT18DALPHI" not in r.text
+    assert 'value="kc"' in r.text and 'class="keepq' in r.text
+
+
+def test_in_progress_games_are_listed_not_compared(env, exchange, fake, monkeypatch):
+    monkeypatch.setenv("ODDS_API_KEY", "odds-key")
+    handler, _ = odds_feed()
+    for m in fake.markets["KXNFLGAME"]:
+        if m["event_ticker"].endswith("DALPHI"):
+            m.update(yes_sub_title="Philadelphia" if m["ticker"].endswith("PHI") else "Dallas")
+    app = create_app(trading_transport=httpx.MockTransport(exchange.handler),
+                     market_transport=httpx.MockTransport(fake.handler), odds_transport=httpx.MockTransport(handler),
+                     clock=lambda: datetime(2026, 10, 18, 18, tzinfo=timezone.utc))  # an hour after kickoff
+    web = TestClient(app, base_url="https://testserver")
+    login(web)
+    r = web.get("/")
+    assert "1 already started" in r.text and "in progress" in r.text and "No strong picks" in r.text

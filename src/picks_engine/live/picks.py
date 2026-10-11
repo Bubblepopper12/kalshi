@@ -31,6 +31,7 @@ except Exception:  # pragma: no cover
     _ET = timezone.utc
 
 SHARP_BOOKS = ("pinnacle",)
+STRONG_EDGE = 0.05  # "Strong" needs at least this much edge (or min_edge, if higher)
 STALE_AFTER = timedelta(minutes=60)
 THIN_GAP = Decimal("0.10")
 
@@ -86,7 +87,7 @@ class Pick:
 
     @property
     def cost(self) -> Decimal:
-        return self.ask + self.fee
+        return self.choice.cost or Decimal(0)
 
     @property
     def books(self) -> list[str]:
@@ -97,10 +98,11 @@ class Pick:
 class PicksResult:
     picks: list[Pick]  # edge >= min_edge, best first
     near: list[Pick]  # 0 < edge < min_edge
-    board: list[Game]  # every game still to be played, matched or not
+    board: list[Game]  # every game, matched or not (in-progress ones have no comparison)
     games_checked: int
     games_matched: int
     unmatched: list[str]
+    in_progress: int = 0
 
 
 def _parse(ts: str | None) -> datetime | None:
@@ -170,14 +172,16 @@ def judge(pick: Pick, min_edge: float, now: datetime) -> None:
     """Strength label and plain-language cautions."""
     c, g = pick.choice, pick.game
     cost = float(c.cost or 0)
-    sharp_ok = c.pinnacle is None or c.pinnacle - cost >= 0.01
-    if pick.edge >= max(min_edge, 0.05) and len(c.books) >= 3 and sharp_ok and not g.stretched:
+    sharp_ok = c.pinnacle is not None and c.pinnacle - cost >= 0.01
+    if pick.edge >= max(min_edge, STRONG_EDGE) and len(c.books) >= 3 and sharp_ok and not g.stretched:
         pick.strength = "Strong"
     elif pick.edge >= min_edge:
         pick.strength = "Good"
     else:
         pick.strength = "Close call"
-    if c.pinnacle is not None and c.pinnacle - cost < 0:
+    if c.pinnacle is None:
+        pick.notes.append("Pinnacle, the sharpest sportsbook, didn't price this game.")
+    elif c.pinnacle - cost < 0:
         pick.notes.append("Pinnacle, the sharpest sportsbook, doesn't agree this is cheap.")
     if len(c.books) < 3:
         pick.notes.append(f"Only {len(c.books)} sportsbooks priced this game.")
@@ -193,7 +197,7 @@ def compare(games: list[Game], odds_events: list[dict], *, three_way: bool, min_
             fee_rate: float = 0.07, fee_contracts: int = 10, now: datetime | None = None) -> PicksResult:
     now = now or datetime.now(timezone.utc)
     picks, near, board, unmatched = [], [], [], []
-    checked = matched = 0
+    checked = matched = live = 0
     for g in games:
         checked += 1
         found = find_game(g, odds_events)
@@ -204,7 +208,11 @@ def compare(games: list[Game], odds_events: list[dict], *, three_way: bool, min_
         oe, mapping = found
         starts = _parse(oe.get("commence_time"))
         if starts and starts <= now:
-            continue  # already started: in-game prices are a different thing
+            # Already started: in-game prices move with the score, so no comparison and no pick.
+            g.starts = starts
+            live += 1
+            board.append(g)
+            continue
         matched += 1
         g.starts, g.matched = starts, True
         g.names = [oe.get("home_team", ""), oe.get("away_team", "")]
@@ -224,7 +232,7 @@ def compare(games: list[Game], odds_events: list[dict], *, three_way: bool, min_
         board.append(g)
     picks.sort(key=lambda p: p.edge, reverse=True)
     near.sort(key=lambda p: p.edge, reverse=True)
-    return PicksResult(picks, near, board, checked, matched, unmatched)
+    return PicksResult(picks, near, board, checked, matched, unmatched, live)
 
 
 def build_picks(kalshi_events: list[dict], odds_events: list[dict], *, three_way: bool, league: str = "",

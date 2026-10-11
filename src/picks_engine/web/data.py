@@ -1,15 +1,19 @@
 """Loading (and briefly caching) what the pages show: Kalshi games and sportsbook comparisons.
 
-Caches live in memory for the life of a warm server instance. Kalshi listings
-are cheap to refetch (90 s); sportsbook odds use the monthly quota, so a
-league's comparison is reused for 10 minutes and "Refresh" can't refetch more
-than once every 2 minutes.
+Caches live in memory for the life of a warm server instance:
+  * Kalshi listings: 90 s, so prices on every page are fresh;
+  * sportsbook odds: 10 min per league (they use the monthly quota), and
+    "Refresh" can't refetch more than once every 2 minutes.
+The comparison itself is recomputed on every page load from fresh Kalshi prices
+and the cached odds, so a pick never rests on a stale Kalshi price.
 """
 
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from datetime import datetime
 
 import httpx
 
@@ -22,18 +26,25 @@ from ..live.picks import PicksResult, compare
 
 SERIES_TTL = 600
 EVENTS_TTL = 90
-PICKS_TTL = 600
-PICKS_MIN_REFRESH = 120
+ODDS_TTL = 600
+ODDS_MIN_REFRESH = 120
+MAX_PARALLEL = 5
 
 _series: dict[str, tuple[float, list[dict]]] = {}
 _events: dict[tuple[str, str], tuple[float, list[dict]]] = {}
-_picks: dict[str, tuple[float, PicksResult, int | None]] = {}
+_odds: dict[str, tuple[float, list[dict], int | None]] = {}
 
 
 def clear_caches() -> None:
     _series.clear()
     _events.clear()
-    _picks.clear()
+    _odds.clear()
+
+
+@dataclass
+class Loaded:
+    games: list[Game]
+    failed: list[str] = field(default_factory=list)  # league names that couldn't be loaded
 
 
 @dataclass
@@ -41,15 +52,19 @@ class Sources:
     settings: Settings
     market_transport: httpx.BaseTransport | None = None
     odds_transport: httpx.BaseTransport | None = None
-    clock: object = None  # optional () -> datetime, for tests
+    clock: object = None  # optional () -> datetime (tests pin it)
 
     def kalshi(self) -> KalshiReadOnlyClient:
+        # One retry at most: a page shouldn't hang on Kalshi's backoff.
         return KalshiReadOnlyClient(self.settings.kalshi_api_base, requests_per_second=20,
-                                    transport=self.market_transport)
+                                    transport=self.market_transport, max_retries=1)
+
+    def now(self) -> datetime | None:
+        return self.clock() if self.clock else None
 
     # ------------------------------------------------------------ Kalshi
 
-    def sports_series(self, rc: KalshiReadOnlyClient) -> list[dict]:
+    def _sports_series(self, rc: KalshiReadOnlyClient) -> list[dict]:
         hit = _series.get("sports")
         if hit and time.time() - hit[0] < SERIES_TTL:
             return hit[1]
@@ -57,53 +72,60 @@ class Sources:
         _series["sports"] = (time.time(), data)
         return data
 
-    def events(self, league: str, kind: str, rc: KalshiReadOnlyClient | None = None) -> list[dict]:
+    def events(self, league: str, kind: str) -> list[dict]:
         hit = _events.get((league, kind))
         if hit and time.time() - hit[0] < EVENTS_TTL:
             return hit[1]
-        own = rc is None
-        rc = rc or self.kalshi()
-        try:
+        with self.kalshi() as rc:
             out: list[dict] = []
-            for sr in game_series(LEAGUES[league], self.sports_series(rc), kind):
+            for sr in game_series(LEAGUES[league], self._sports_series(rc), kind):
                 out.extend(rc.events(sr["ticker"], status="open", with_nested_markets=True))
-        finally:
-            if own:
-                rc.close()
         _events[(league, kind)] = (time.time(), out)
         return out
 
-    def games(self, leagues: list[str], kind: str) -> list[Game]:
-        """Games for several leagues; winner markets reuse the sportsbook comparison when one is cached."""
-        games: list[Game] = []
-        with self.kalshi() as rc:
-            for code in leagues:
-                cached = _picks.get(code)
-                if kind == "moneyline" and cached and time.time() - cached[0] < PICKS_TTL:
-                    games.extend(cached[1].board)
-                else:
-                    games.extend(games_from_events(self.events(code, kind, rc), code, kind))
-        return games
+    def games(self, leagues: list[str], kind: str) -> Loaded:
+        """Fresh Kalshi games for several leagues (in parallel), with cached sportsbook numbers laid on top."""
+        with self.kalshi() as rc:  # warm the shared series listing once, before the threads start
+            self._sports_series(rc)
+
+        def load(code: str):
+            try:
+                return code, games_from_events(self.events(code, kind), code, kind), None
+            except httpx.HTTPError as exc:
+                return code, [], exc
+
+        loaded = Loaded([])
+        with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL, len(leagues))) as pool:
+            for code, games, err in pool.map(load, leagues):
+                if err is not None:
+                    loaded.failed.append(LEAGUES[code].name)
+                    continue
+                if kind == "moneyline" and code in _odds and time.time() - _odds[code][0] < ODDS_TTL:
+                    lg = LEAGUES[code]
+                    games = compare(games, _odds[code][1], three_way=lg.three_way,
+                                    min_edge=self.settings.picks_min_edge, fee_rate=self.settings.kalshi_fee_rate,
+                                    now=self.now()).board
+                loaded.games.extend(games)
+        return loaded
 
     # ------------------------------------------------------------ comparison with sportsbooks
 
-    def picks(self, league: str, refresh: bool = False) -> tuple[PicksResult, int | None, float]:
-        """(result, sportsbook requests left, fetched at) for one league."""
-        now = time.time()
-        hit = _picks.get(league)
-        if hit and (now - hit[0] < PICKS_TTL and not refresh or refresh and now - hit[0] < PICKS_MIN_REFRESH):
-            return hit[1], hit[2], hit[0]
+    def picks(self, league: str, refresh: bool = False) -> tuple[PicksResult, int | None, float | None]:
+        """(result, sportsbook lookups left, when the odds were fetched) for one league."""
         s, lg = self.settings, LEAGUES[league]
         games = games_from_events(self.events(league, "moneyline"), league, "moneyline")
-        left = hit[2] if hit else None
-        if games:
+        if not games:  # nothing on Kalshi: don't spend a sportsbook lookup, don't cache anything
+            hit = _odds.get(league)
+            return compare([], [], three_way=lg.three_way), (hit[2] if hit else None), None
+        now = time.time()
+        hit = _odds.get(league)
+        fresh = hit and (now - hit[0] < (ODDS_MIN_REFRESH if refresh else ODDS_TTL))
+        if not fresh:
             with OddsAPIClient(s.odds_api_key or "", s.odds_bookmakers or DEFAULT_BOOKMAKERS,
                                transport=self.odds_transport) as oc:
                 odds = oc.moneylines(lg.odds_sport)
-            left = odds.requests_remaining
-            result = compare(games, odds.events, three_way=lg.three_way, min_edge=s.picks_min_edge,
-                             fee_rate=s.kalshi_fee_rate, now=self.clock() if self.clock else None)
-        else:
-            result = compare([], [], three_way=lg.three_way)
-        _picks[league] = (now, result, left)
-        return result, left, now
+            hit = (now, odds.events, odds.requests_remaining)
+            _odds[league] = hit
+        result = compare(games, hit[1], three_way=lg.three_way, min_edge=s.picks_min_edge,
+                         fee_rate=s.kalshi_fee_rate, now=self.now())
+        return result, hit[2], hit[0]

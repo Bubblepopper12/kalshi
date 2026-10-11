@@ -17,12 +17,11 @@ def pct(x: float | Decimal | None) -> str:
     return "—" if x is None else f"{float(x) * 100:.0f}%"
 
 
-def bet_href(ticker: str, side: str = "yes", contracts: int | None = None, price: Decimal | None = None) -> str:
+def bet_href(ticker: str, side: str = "yes", contracts: int | None = None) -> str:
+    """Link into the bet flow. No price on purpose: the next page starts from Kalshi's live price."""
     q: dict = {"ticker": ticker, "side": side}
     if contracts:
         q["contracts"] = contracts
-    if price is not None and 0 < price < 1:
-        q["price"] = int(price * 100)
     return "/bet?" + urlencode(q)
 
 
@@ -46,13 +45,13 @@ def search_bar(q: str = "", placeholder: str = "Search a team, league or day", p
 SEARCH_JS = """<script>
 (function(){
   var q=document.getElementById('q'); if(!q) return;
-  var cards=[].slice.call(document.querySelectorAll('[data-k]')), day='all';
+  var cards=[].slice.call(document.querySelectorAll('article.game[data-k]')), day='all';
   var thin=document.getElementById('f-thin'), edge=document.getElementById('f-edge');
   var count=document.getElementById('count'), empty=document.getElementById('none');
   function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
   function run(){
     var words=q.value.toLowerCase().split(/\\s+/).filter(Boolean), t=new Date(), shown=0;
-    var today=iso(t), tom=iso(new Date(t.getTime()+864e5)), wk=iso(new Date(t.getTime()+7*864e5));
+    var today=iso(t), tom=iso(new Date(t.getTime()+864e5)), wk=iso(new Date(t.getTime()+6*864e5));
     cards.forEach(function(c){
       var k=c.getAttribute('data-k'), d=c.getAttribute('data-day')||'', ok=words.every(function(w){return k.indexOf(w)>=0;});
       if(ok&&day==='today') ok=d===today; if(ok&&day==='tomorrow') ok=d===tom;
@@ -65,6 +64,8 @@ SEARCH_JS = """<script>
     if(empty) empty.style.display=(cards.length&&!shown)?'':'none';
     var u=new URL(location.href); if(q.value) u.searchParams.set('q',q.value); else u.searchParams.delete('q');
     history.replaceState(null,'',u);
+    [].slice.call(document.querySelectorAll('a.keepq')).forEach(function(a){
+      var l=new URL(a.href); if(q.value) l.searchParams.set('q',q.value); else l.searchParams.delete('q'); a.href=l;});
   }
   q.addEventListener('input',run); if(thin) thin.addEventListener('change',run); if(edge) edge.addEventListener('change',run);
   [].slice.call(document.querySelectorAll('#f-day a')).forEach(function(a){a.addEventListener('click',function(e){
@@ -78,7 +79,7 @@ SEARCH_JS = """<script>
 def league_chips(current: str, href, include_all: bool = False) -> str:
     items = ([("ALL", "All leagues")] if include_all else []) + [(c, lg.name) for c, lg in LEAGUES.items()]
     return '<div class="chips scroll">' + "".join(
-        f'<a class="{"on" if code == current else ""}" href="{esc(href(code))}">{esc(name)}</a>' for code, name in items
+        f'<a class="keepq{" on" if code == current else ""}" href="{esc(href(code))}">{esc(name)}</a>' for code, name in items
     ) + "</div>"
 
 
@@ -94,7 +95,8 @@ def _edge_chip(c: Choice, min_edge: float) -> str:
 
 def _tile(c: Choice, game: Game, min_edge: float, side: str = "yes") -> str:
     price = c.yes_ask if side == "yes" else c.no_ask
-    label = c.name if game.kind == "moneyline" and side == "yes" else (c.statement if side == "yes" else f"NOT: {c.statement}")
+    label = (c.name or c.statement) if game.kind == "moneyline" and side == "yes" else \
+        (c.statement if side == "yes" else f"NOT: {c.statement}")
     if game.kind == "moneyline" and c.name.lower() in ("tie", "draw"):
         label = c.name.capitalize()
     sub = []
@@ -106,7 +108,7 @@ def _tile(c: Choice, game: Game, min_edge: float, side: str = "yes") -> str:
     if price is None or not 0 < price < 1:
         return (f'<div class="out off"><span class="oname">{esc(label)}</span>'
                 f'<span class="oprice">—</span><span class="osub">No sellers</span></div>')
-    return (f'<a class="out" href="{esc(bet_href(c.ticker, side, price=price))}">'
+    return (f'<a class="out" href="{esc(bet_href(c.ticker, side))}">'
             f'<span class="oname">{esc(label)}</span><span class="oprice">{cents(price)}</span>'
             f'<span class="osub">{" · ".join(sub)} {chip}</span></a>')
 
@@ -155,8 +157,7 @@ def pick_card(p: Pick, cash: Decimal | None) -> str:
     notes = "".join(f"<li>{esc(n)}</li>" for n in p.notes)
     notes = f'<ul class="cautions">{notes}</ul>' if notes else ""
     badge = {"Strong": "pos", "Good": "lean"}.get(p.strength, "neg")
-    return f'''<article class="card pick" data-k="{esc(g.keywords(lg.name if lg else ""))}"
-data-day="{g.day.isoformat() if g.day else ""}" data-thin="{1 if g.stretched else 0}" data-edge="{p.edge:.4f}">
+    return f'''<article class="card pick">
 <div class="pickhead"><span class="badge {badge}">{esc(p.strength)}</span>
 <span class="muted small">{esc(lg.name if lg else g.league)} · {esc(g.title)} · {esc(when_txt)}</span></div>
 <h2>{esc(c.statement)}</h2>
@@ -166,5 +167,5 @@ data-day="{g.day.isoformat() if g.day else ""}" data-thin="{1 if g.stretched els
 {sharp}
 <dt>Kalshi price</dt><dd>{cents(c.yes_ask)} + {p.fee * 100:.1f}¢ fee = {float(p.cost) * 100:.1f}¢</dd>
 <dt>Suggested</dt><dd>{esc(suggest)}</dd></dl>{notes}
-<p class="actions"><a class="btn" href="{esc(bet_href(c.ticker, "yes", max(p.contracts, 1), c.yes_ask))}">Bet this →</a>
+<p class="actions"><a class="btn" href="{esc(bet_href(c.ticker, "yes", max(p.contracts, 1)))}">Bet this →</a>
 <span class="muted small">You'll review it before anything is sent.</span></p></article>'''

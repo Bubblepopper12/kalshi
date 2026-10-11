@@ -37,13 +37,13 @@ from urllib.parse import urlencode
 
 import httpx
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
 from ..config import Settings
 from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
 from ..kalshi.leagues import LEAGUES
 from ..live.odds_api import OddsAPIError
-from ..live.picks import size
+from ..live.picks import STRONG_EDGE, size
 from ..pricing.fees import kalshi_fee
 from ..trading.client import KalshiAPIError, KalshiTradingClient, TradingNotConfigured
 from ..trading.limits import max_cost, static_checks
@@ -97,7 +97,7 @@ def create_app(trading_transport: httpx.BaseTransport | None = None,
         return KalshiTradingClient.from_settings(s, transport=trading_transport)
 
     def market_client(s: Settings) -> KalshiReadOnlyClient:
-        return KalshiReadOnlyClient(s.kalshi_api_base, requests_per_second=20, transport=market_transport)
+        return sources(s).kalshi()
 
     def setup_page(s: Settings, problem: str) -> HTMLResponse:
         return page(s, "Setup needed", f'<div class="card"><h1>Setup needed</h1><p>{esc(problem)}</p></div>',
@@ -116,6 +116,13 @@ def create_app(trading_transport: httpx.BaseTransport | None = None,
     @app.get("/health", response_class=PlainTextResponse)
     def health():
         return "ok"
+
+    @app.get("/favicon.ico")
+    def favicon():
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" '
+               'fill="#0b6e4f"/><path d="M9 22l5-6 4 3 5-8" stroke="#fff" stroke-width="3" fill="none" '
+               'stroke-linecap="round" stroke-linejoin="round"/></svg>')
+        return Response(svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
     # ------------------------------------------------------------ login
 
@@ -293,10 +300,13 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
         cash = cash_balance(s)
         for p in result.picks:
             size(p, cash, s.max_order_dollars)
-        age = int((time.time() - fetched) // 60)
         name = LEAGUES[league].name
-        status = [f"{result.games_matched} of {result.games_checked} {esc(name)} games compared with the sportsbooks",
-                  "updated just now" if age == 0 else f"updated {age} min ago"]
+        status = [f"{result.games_matched} of {result.games_checked} {esc(name)} games compared with the sportsbooks"]
+        if result.in_progress:
+            status.append(f"{result.in_progress} already started")
+        if fetched is not None:
+            age = int((time.time() - fetched) // 60)
+            status.append("sportsbook odds from just now" if age == 0 else f"sportsbook odds from {age} min ago")
         if left is not None:
             status.append(f"{left} sportsbook lookups left this month")
         status.append(f'<a href="/?league={league}&refresh=1">Refresh</a>')
@@ -327,13 +337,15 @@ every game below.</p></div>''')
             parts.append('<p class="muted small">Not compared (the sportsbooks don\'t list these the same way): '
                          + esc(", ".join(result.unmatched[:8])) + ("…" if len(result.unmatched) > 8 else "") + "</p>")
         parts.append("</section>")
-        parts.append('''<details class="card"><summary>How picks work</summary>
+        min_pts, strong_pts = f"{s.picks_min_edge * 100:g}", f"{max(s.picks_min_edge, STRONG_EDGE) * 100:g}"
+        parts.append(f'''<details class="card"><summary>How picks work</summary>
 <p style="margin-top:10px">1. The bot reads the odds from several sportsbooks (Pinnacle, DraftKings, FanDuel and others)
 and removes their built-in profit margin, which gives a fair chance for each outcome.</p>
-<p>2. It compares that chance with Kalshi's price plus Kalshi's fee. If Kalshi is at least
-3 points cheaper, it's a pick.</p>
-<p>3. <b>Strong</b> means at least 5 points, 3+ sportsbooks, Pinnacle agrees, and Kalshi prices aren't stretched.
-<b>Good</b> means it clears 3 points but misses one of those.</p>
+<p>2. It compares that chance with Kalshi's live price plus Kalshi's fee. If Kalshi is at least
+{min_pts} points cheaper, it's a pick.</p>
+<p>3. <b>Strong</b> means at least {strong_pts} points, 3+ sportsbooks, Pinnacle priced it and agrees, and Kalshi
+prices aren't stretched. <b>Good</b> means it clears {min_pts} points but misses one of those.</p>
+<p>Games that have already started aren't compared: in-game prices move with the score.</p>
 <p>4. Suggested size is a quarter of the "Kelly" amount for your cash, never above your per-bet limit.</p>
 <p class="muted small">Coming later: tipster track records and the bot's own model.</p></details>''')
         parts.append(SEARCH_JS)
@@ -352,16 +364,23 @@ and removes their built-in profit margin, which gives a fair chance for each out
         s = settings()
         league = league.upper() if league.upper() in LEAGUES or league.upper() == "ALL" else "ALL"
         kind = kind if kind in KIND_LABELS else "moneyline"
-        games, error = [], ""
+        games, error, failed = [], "", []
         try:
-            games = sources(s).games(list(LEAGUES) if league == "ALL" else [league], kind)
+            loaded = sources(s).games(list(LEAGUES) if league == "ALL" else [league], kind)
+            games, failed = loaded.games, loaded.failed
         except httpx.HTTPError as exc:
             error = f"Couldn't load games from Kalshi right now ({exc}). Try again in a minute."
+        if failed and not games:
+            error = "Couldn't load games from Kalshi right now. Try again in a minute."
         games.sort(key=lambda g: (g.day or date.max, g.title))
+        words = q.lower().split()
+        if words:  # a search in the address bar is applied before the display limit
+            games = [g for g in games if all(w in g.keywords(LEAGUES[g.league].name) for w in words)]
+        total = len(games)
         games = games[:MAX_GAMES]
 
         link = lambda **kw: "/find?" + urlencode({"league": league, "kind": kind} | kw)  # noqa: E731
-        kind_chips = "".join(f'<a class="{"on" if k == kind else ""}" href="{esc(link(kind=k))}">{label}</a>'
+        kind_chips = "".join(f'<a class="keepq{" on" if k == kind else ""}" href="{esc(link(kind=k))}">{label}</a>'
                              for k, (label, _) in KIND_LABELS.items())
         parts = [f'''<h1>All bets</h1>
 <p class="lead">Every game Kalshi offers. These are not recommendations (those are on Picks). Each box shows what
@@ -369,6 +388,11 @@ it costs; it pays $1.00 if you're right.</p>
 {search_bar(q, "Search: eagles, lakers, sunday…")}
 {league_chips(league, lambda code: link(league=code), include_all=True)}
 <div class="chips">{kind_chips}</div><p class="muted small">{esc(KIND_LABELS[kind][1])} Full-game bets only.</p>''']
+        if failed and games:
+            parts.append(f'<p class="thin">Couldn&#x27;t load {esc(", ".join(failed))} right now; showing the rest.</p>')
+        if total > len(games):
+            parts.append(f'<p class="thin">Showing the first {len(games)} of {total} games by date. Pick a league or '
+                         'search to narrow it down.</p>')
         if error:
             parts.append(f'<div class="card bad">{esc(error)}</div>')
         elif not games:

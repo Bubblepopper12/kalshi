@@ -119,3 +119,22 @@ def test_odds_client_quota_and_errors():
         bad.moneylines("americanfootball_nfl")
     with pytest.raises(OddsAPIError):
         OddsAPIClient("")
+
+
+def test_strong_needs_pinnacle():
+    ev = kalshi_event("26OCT18JACPHI", "Jacksonville at Philadelphia", ["Jacksonville", "Philadelphia"],
+                      [0.37, 0.55])
+    books = [(-200, 170), (-190, 160), (-210, 175)]
+    oe = odds_event("Philadelphia Eagles", "Jacksonville Jaguars", books)
+    no_sharp = build_picks([ev], [oe], three_way=False, now=NOW).picks[0]
+    assert no_sharp.strength == "Good" and any("didn't price" in n for n in no_sharp.notes)
+    oe["bookmakers"][0]["key"] = "pinnacle"
+    sharp = build_picks([ev], [oe], three_way=False, now=NOW).picks[0]
+    assert sharp.strength == "Strong" and sharp.choice.pinnacle is not None
+
+
+def test_started_games_stay_on_the_board():
+    ev = kalshi_event("26OCT18JACPHI", "Jacksonville at Philadelphia", ["Jacksonville", "Philadelphia"], [0.37, 0.55])
+    oe = odds_event("Philadelphia Eagles", "Jacksonville Jaguars", [(-200, 170), (-190, 160)])
+    r = build_picks([ev], [oe], three_way=False, now=datetime(2026, 10, 18, 18, tzinfo=timezone.utc))
+    assert r.in_progress == 1 and len(r.board) == 1 and r.picks == [] and r.board[0].starts is not None

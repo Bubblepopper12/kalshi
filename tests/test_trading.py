@@ -253,3 +253,32 @@ def test_suggestion_ticket_logs_decision(engine, settings, exchange, tclient):
     with engine.connect() as conn:
         d = conn.execute(sa.select(t.logan_decisions)).mappings().one()
     assert d["decision"] == "took" and d["contracts"] == 10 and d["suggestion_id"] == sid
+
+
+def test_ed25519_keys_sign_the_same_text(tmp_path):
+    from cryptography.hazmat.primitives.asymmetric import ec, ed25519
+
+    key = ed25519.Ed25519PrivateKey.generate()
+    path = tmp_path / "kalshi.key"
+    pem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                            serialization.NoEncryption())
+    assert pem.startswith(b"-----BEGIN PRIVATE KEY-----")  # same header Kalshi's Ed25519 keys use
+    path.write_bytes(pem)
+    path.chmod(0o600)
+    signer = KalshiSigner.from_file("key-123", path)
+    assert signer.key_type == "ed25519"
+    h = signer.headers("GET", "/trade-api/v2/portfolio/balance?limit=1", timestamp_ms=1700000000000)
+    key.public_key().verify(base64.b64decode(h["KALSHI-ACCESS-SIGNATURE"]),
+                            b"1700000000000GET/trade-api/v2/portfolio/balance")
+
+    ec_path = tmp_path / "ec.key"
+    ec_path.write_bytes(ec.generate_private_key(ec.SECP256R1()).private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    ec_path.chmod(0o600)
+    with pytest.raises(ValueError, match="RSA or Ed25519"):
+        KalshiSigner.from_file("key-123", ec_path)
+    junk = tmp_path / "junk.key"
+    junk.write_text("not a key")
+    junk.chmod(0o600)
+    with pytest.raises(ValueError, match="readable private key"):
+        KalshiSigner.from_file("key-123", junk)

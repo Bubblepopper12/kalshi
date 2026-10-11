@@ -249,7 +249,8 @@ def cmd_trade(args, settings):
             for r in rows:
                 print(f"{r['ts']}  {r['event']:<16} {json.dumps(r['detail'], default=str)}")
             return
-    except (tr.TradeRefused, TradingNotConfigured, KalshiAPIError, FileNotFoundError, PermissionError) as exc:
+    except (tr.TradeRefused, TradingNotConfigured, KalshiAPIError, FileNotFoundError, PermissionError,
+            ValueError) as exc:
         raise SystemExit(f"Not done: {exc}") from None
     except httpx.HTTPError as exc:
         raise SystemExit(f"Not done: couldn't reach Kalshi ({exc!r}). Run `picks trade refresh` once it's back.") from None

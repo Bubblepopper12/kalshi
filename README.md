@@ -103,17 +103,18 @@ limits are checked against your live account before sending.
    entry for your site → **Set Up Verification Code** → **Enter Setup Key** and
    paste it. Google Authenticator works too.
 2. **In Vercel → the `kalshi` project → Settings → Environment Variables**, add
-   these and tick **Production only** (not Preview or Development):
+   these four, tick **Production only** (not Preview or Development), and mark
+   them **Sensitive**:
 
    | Name | Value |
    | --- | --- |
    | `APP_PASSWORD` | the password from step 1 |
    | `APP_TOTP_SECRET` | the two-step secret from step 1 |
-   | `KALSHI_ENV` | `live` |
    | `KALSHI_API_KEY_ID` | your Kalshi Key ID |
    | `KALSHI_PRIVATE_KEY` | the whole private key text, from `-----BEGIN` to `-----END ...-----` |
-   | `PICKS_MAX_ORDER_DOLLARS` | e.g. `5` |
-   | `PICKS_MAX_DAILY_DOLLARS` | e.g. `20` |
+
+   The plain settings (`KALSHI_ENV=live`, $5 per order, $20 per day) live in
+   `src/picks_engine/web/web.env`. Anything you set in Vercel overrides them.
 
    To copy the key text on your Mac without it showing: `pbcopy < ~/.kalshi/kalshi.key`,
    then paste into the value box.

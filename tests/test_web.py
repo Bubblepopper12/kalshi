@@ -214,3 +214,19 @@ def test_keys_require_two_step(env, monkeypatch):
     assert "valid authenticator secret" in web.get("/login").text
     monkeypatch.setenv("APP_PASSWORD", "fifteen chars..")
     assert "at least 16" in web.get("/login").text
+
+
+def test_vercel_entry_loads_plain_defaults(monkeypatch, tmp_path):
+    import runpy
+    from pathlib import Path
+
+    for k in ("KALSHI_ENV", "PICKS_MAX_ORDER_DOLLARS", "PICKS_MAX_DAILY_DOLLARS"):
+        monkeypatch.setenv(k, "x")  # records the original value so it is restored afterwards
+        monkeypatch.delenv(k)
+    monkeypatch.setenv("PICKS_MAX_DAILY_DOLLARS", "7")  # set in Vercel: must win
+    ns = runpy.run_path(str(Path(__file__).resolve().parent.parent / "api" / "index.py"))
+    assert ns["app"] is not None
+    s = Settings.from_env()
+    assert s.kalshi_env == "live" and s.max_order_dollars == 5 and s.max_daily_dollars == 7
+    defaults = (Path(__file__).resolve().parent.parent / "src/picks_engine/web/web.env").read_text().upper()
+    assert "PASSWORD" not in defaults.replace("NEVER PUT PASSWORDS", "") and "PRIVATE_KEY=" not in defaults

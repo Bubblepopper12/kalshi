@@ -1,8 +1,8 @@
-"""Read-only Kalshi Trade API client.
+"""Read-only Kalshi Trade API client for public market data.
 
-Only public market data is used: series, events, markets and order books. The
-client sends no credentials and refuses any method other than GET, so it cannot
-place, change or cancel orders even by mistake.
+Series, events, markets and order books. The client sends no credentials and
+refuses any method other than GET, so the research jobs can never place, change
+or cancel orders. Trading lives separately in trading/, behind approval.
 """
 
 from __future__ import annotations

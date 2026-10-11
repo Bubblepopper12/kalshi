@@ -1,5 +1,10 @@
 # Kalshi Picks Engine — Concept
 
+> **Update (trading added):** the original concept below never trades. The
+> engine can now place orders, but only an order Logan approves one ticket at a
+> time, within hard limits, starting on Kalshi's demo exchange. There is still no
+> autonomous trading. See "How trading works" in the README.
+
 ## Overview
 
 The Kalshi Picks Engine is a research tool, not a trading bot. It collects millions of rows of picks, results, odds and Kalshi prices, scores every tipster by their real track record, and gives Logan a ranked pick board. Logan reviews the board and places every trade himself. The engine never logs in, holds funds or submits orders.

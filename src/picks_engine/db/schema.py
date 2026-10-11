@@ -333,6 +333,59 @@ logan_decisions = sa.Table(
     sa.Column("decided_at", Ts, nullable=False, server_default=_now()),
 )
 
+# ---------------------------------------------------------------- trading (approval-only)
+
+# One order ticket. Nothing reaches Kalshi until a ticket is approved by a person;
+# see trading/orders.py for the lifecycle:
+#   proposed -> approved+submitted -> resting | executed | canceled
+#   proposed -> rejected | expired;  submit errors -> failed
+trade_orders = sa.Table(
+    "trade_orders",
+    metadata,
+    sa.Column("id", BigId, primary_key=True, autoincrement=True),
+    sa.Column("env", sa.String(8), nullable=False),  # demo | live
+    sa.Column("suggestion_id", sa.ForeignKey("suggestions.id")),
+    sa.Column("market_ticker", sa.String(128), nullable=False),
+    sa.Column("side", sa.String(4), nullable=False),  # yes | no
+    sa.Column("action", sa.String(4), nullable=False, server_default="buy"),
+    sa.Column("count", sa.Integer, nullable=False),
+    sa.Column("limit_price", Prob, nullable=False),  # most we will pay per contract
+    sa.Column("max_cost", sa.Numeric(12, 2), nullable=False),  # count * price + fee
+    sa.Column("reason", sa.Text),  # why this ticket exists (pick, note)
+    sa.Column("status", sa.String(16), nullable=False),
+    sa.Column("client_order_id", sa.String(64), nullable=False, unique=True),
+    sa.Column("kalshi_order_id", sa.String(64)),
+    sa.Column("fill_count", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("created_at", Ts, nullable=False),
+    sa.Column("expires_at", Ts, nullable=False),  # unapproved tickets die after this
+    sa.Column("approved_at", Ts),
+    sa.Column("approved_via", sa.String(32)),  # cli | board
+    sa.Column("submitted_at", Ts),
+    sa.Column("error", sa.Text),
+    sa.Index("ix_trade_orders_status", "status"),
+)
+
+# Every step of every ticket, including the exact request and Kalshi's reply.
+trade_audit = sa.Table(
+    "trade_audit",
+    metadata,
+    sa.Column("id", BigId, primary_key=True, autoincrement=True),
+    sa.Column("order_id", sa.ForeignKey("trade_orders.id")),
+    sa.Column("ts", Ts, nullable=False),
+    sa.Column("event", sa.String(32), nullable=False),
+    sa.Column("detail", Json),
+)
+
+# Single-row switch: when halted, no order can be submitted.
+trading_state = sa.Table(
+    "trading_state",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("halted", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.Column("reason", sa.Text),
+    sa.Column("updated_at", Ts, nullable=False, server_default=_now()),
+)
+
 # ---------------------------------------------------------------- operations
 
 sync_runs = sa.Table(

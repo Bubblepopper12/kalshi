@@ -1,24 +1,87 @@
 # Kalshi Picks Engine
 
-A research tool, not a trading bot. It stores picks, results, odds and Kalshi
-prices, scores every tipster by their real track record, and gives Logan a
-ranked pick board. **Logan places every trade himself.** The engine never logs
-in, holds funds or submits orders. The full design is in [CONCEPT.md](CONCEPT.md).
+It stores picks, results, odds and Kalshi prices, scores every tipster by their
+real track record, gives Logan a ranked pick board, and can place orders on
+Kalshi, **but only an order Logan has approved, one ticket at a time.** It
+starts on Kalshi's practice exchange (demo). The full design is in
+[CONCEPT.md](CONCEPT.md).
 
-## Read-only by construction
+## How trading works: nothing happens unless you approve it
 
-- `KalshiReadOnlyClient` only sends `GET` requests. Any other method, or any
-  request carrying Kalshi credentials, raises before it leaves the machine.
-- There is no setting for an API key, and no code that touches an account,
-  balance, position or order endpoint.
-- The board records what Logan *says* he did (Took it / Pass, price, contracts).
-  It never sees his account.
+1. **Ticket.** You make an order ticket from a pick card on the board, or with
+   `picks trade propose`. A ticket says: which market, YES or NO, how many
+   contracts, and the most you'll pay per contract. **Nothing is sent.**
+2. **Approve.** You approve that exact ticket. On the board, tick *"I approve
+   this exact order"* and press **Send to Kalshi**. In the terminal, run
+   `picks trade approve <id>` and type the market ticker back. Tickets you
+   don't approve within 30 minutes expire.
+3. **Checks.** Right before sending, the bot checks the limits below again. If
+   any check fails, nothing is sent and it says why in plain words.
+4. **Send.** One *limit* buy order at your price or better. If it doesn't fill,
+   it stops resting after 15 minutes. Every step is saved in `trade_audit`
+   (`picks trade log <id>`).
+
+What the bot will never do:
+
+- Trade on its own. There's no auto-trade mode and no setting that turns
+  approval off. Board picks are suggestions until you approve a ticket.
+- Use market orders, sell, or call anything except: read balance, positions,
+  orders and fills; place a limit buy; cancel an order. Any other Kalshi call
+  is refused before it leaves the machine.
+- Send a demo ticket to the live exchange, or the reverse.
+- Send the same ticket twice (double-clicks included).
+
+### Limits (set in `.env`, checked before every order)
+
+| Limit | Default |
+| --- | --- |
+| Most one order can cost (contracts × price + fee) | $10 |
+| Most all of today's orders can cost (UTC day) | $50 |
+| Contracts per order | 100 |
+| Open orders at once | 5 |
+| Price range | 3¢–95¢ |
+| Ticket must be approved within | 30 min |
+| Unfilled order stops resting after | 15 min |
+| Account balance | must cover the order |
+
+**Stop switch:** `picks trade halt` (or **Halt all trading** on the board)
+blocks every order until `picks trade resume`.
+
+### Trading setup
+
+1. **Start on demo.** Make a free practice account at
+   [demo.kalshi.co](https://demo.kalshi.co). It's separate from your real
+   Kalshi account and uses play money.
+2. **Make an API key on that demo account** (Account & security → API keys).
+   Kalshi shows a **Key ID** and downloads a **private key file**.
+3. **Keep the key file on the computer that runs the bot**, e.g.
+   `~/.kalshi/demo.key`, then `chmod 600 ~/.kalshi/demo.key`. The bot refuses
+   key files other users can read. Never paste the private key into a chat,
+   email or this repository (`.gitignore` blocks `*.key` and `*.pem`).
+4. In `.env`: `KALSHI_ENV=demo`, `KALSHI_API_KEY_ID=<your key id>`,
+   `KALSHI_PRIVATE_KEY_PATH=~/.kalshi/demo.key`.
+5. Check it: `picks trade status`, then `picks trade balance`.
+6. Try a 1-contract ticket:
+   ```bash
+   picks trade propose --ticker <MARKET-TICKER> --side yes --price 40 --contracts 1
+   picks trade approve 1        # shows the ticket, asks you to type the ticker
+   picks trade list             # open orders and fills
+   picks trade refresh          # update fills from Kalshi
+   picks trade cancel 1         # cancel if still resting
+   ```
+7. **Real money, only when you decide to:** make a key on your real Kalshi
+   account, point `KALSHI_PRIVATE_KEY_PATH` at it, set `KALSHI_ENV=live`, and
+   set limits you're comfortable losing. The board shows a red LIVE banner,
+   and the terminal warns before each approval.
+
+The demo exchange's market tickers can differ from the live ones. Use tickers
+from the demo site when trading on demo.
 
 ## Quick start
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[postgres,board,dev]"
+pip install -e ".[postgres,board,trading,dev]"
 
 docker compose up -d            # Postgres 16 + TimescaleDB on localhost:5432
 cp .env.example .env && set -a && . ./.env && set +a
@@ -56,7 +119,8 @@ No Docker? `PICKS_DATABASE_URL=sqlite:///picks.db` works for a quick try.
 | `picks gate 1 --league NFL` | Compares Kalshi's live open game markets (moneyline, spread, total) to the database. Exits 1 and lists what's missing if any are absent. |
 | `picks link LEAGUE` | Attaches Kalshi game events to `games` using date + team codes. Misses go to `id_review_queue`. |
 | `picks score` | Recomputes `tipster_scores` (trust and tier per tipster, league and pick type) from `pick_grades`. |
-| `picks board` | Opens the Streamlit board: pick board, pick cards with Took it / Pass, the raw Kalshi market view and the weekly report. |
+| `picks board` | Opens the Streamlit board: pick board, pick cards (Took it / Pass, or make an order ticket), the Orders tab (approve, reject, cancel, halt), the raw Kalshi market view and the weekly report. |
+| `picks trade ...` | Approval-only trading: `status`, `propose`, `list`, `approve`, `reject`, `cancel`, `refresh`, `balance`, `positions`, `halt`, `resume`, `log`. See "How trading works" above. |
 
 Every sync and snapshot writes a row to `sync_runs` (ok/failed, counts, error).
 
@@ -79,6 +143,9 @@ src/picks_engine/
   picks/generate.py    tipster signal, blend, edge vs Kalshi, filters, stake guide
   picks/combos.py      joint probability of correlated legs (Gaussian copula simulation)
   picks/store.py       save suggestions, record Logan's decisions
+  trading/auth.py      Kalshi API-key request signing (RSA-PSS)
+  trading/client.py    authenticated client limited to portfolio reads, limit buys, cancels
+  trading/orders.py    ticket -> approve -> checks -> send; limits, halt switch, audit trail
   board/               Streamlit app and the queries behind it
 ```
 
@@ -112,6 +179,7 @@ on every contract.
 | 3. NFL tipster ingestion | Schema, alias table and review queue ready; grading rule for "captured before kickoff" built. Scrapers come next, one source at a time after checking each site's terms. |
 | 4. Scoring and backtest | Grading, CLV, trust and tiers built and tested; backtest harness comes after Phase 2–3 data exists. |
 | 5. Pick board v1 | Built (Streamlit). Fills up once suggestions are generated from real data. |
+| Trading (added) | Approval-only order tickets, limits, stop switch and audit trail; demo by default. Tested against a fake Kalshi exchange, not yet against demo.kalshi.co. |
 | 6. Expand | All ten leagues are defined; `picks sync CFB NBA EPL ...` already works for Kalshi data. Models, props and combos per league come later. |
 
 ## Before the first live run

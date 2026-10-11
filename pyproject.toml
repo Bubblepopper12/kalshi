@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "picks-engine"
-version = "0.1.0"
-description = "Kalshi Picks Engine: a read-only research tool that grades tipsters and prices picks against Kalshi."
+version = "0.2.0"
+description = "Kalshi Picks Engine: grades tipsters, prices picks against Kalshi, and places only orders you approve."
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.27",
@@ -16,6 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 postgres = ["psycopg[binary]>=3.1"]
 board = ["streamlit>=1.35", "pandas>=2.1"]
+trading = ["cryptography>=42"]
 dev = ["pytest>=8"]
 
 [project.scripts]

@@ -143,7 +143,7 @@ def cmd_trade(args, settings):
                 open_n = tr.open_order_count(conn, settings.kalshi_env)
             print(f"Environment:   {_env_banner(settings)}")
             print(f"Trading:       {'HALTED (' + (why or '') + ')' if halted else 'allowed with approval'}")
-            print(f"Keys set:      {'yes' if settings.kalshi_api_key_id and settings.kalshi_private_key_path else 'no'}")
+            print(f"Keys set:      {'yes' if settings.trading_keys_set else 'no'}")
             print(f"Limits:        ${settings.max_order_dollars:.2f}/order, ${settings.max_daily_dollars:.2f}/day, "
                   f"{settings.max_contracts_per_order} contracts/order, {settings.max_open_orders} open orders, "
                   f"price {settings.min_price * 100:.0f}¢–{settings.max_price * 100:.0f}¢")

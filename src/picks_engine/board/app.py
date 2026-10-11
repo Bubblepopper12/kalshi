@@ -47,7 +47,7 @@ def tipster_summary(backings) -> str:
 
 eng = engine()
 settings = Settings.from_env()
-keys_set = bool(settings.kalshi_api_key_id and settings.kalshi_private_key_path)
+keys_set = settings.trading_keys_set
 if settings.kalshi_env == "live":
     st.error("LIVE trading: approved orders spend real money.")
 else:

@@ -54,12 +54,16 @@ class KalshiTradingClient:
 
     @classmethod
     def from_settings(cls, settings: Settings, transport: httpx.BaseTransport | None = None) -> "KalshiTradingClient":
-        if not settings.kalshi_api_key_id or not settings.kalshi_private_key_path:
+        if not settings.trading_keys_set:
             raise TradingNotConfigured(
-                "Set KALSHI_API_KEY_ID and KALSHI_PRIVATE_KEY_PATH (a key made on "
-                + ("demo.kalshi.co" if settings.kalshi_env == "demo" else "kalshi.com") + ")."
+                "Set KALSHI_API_KEY_ID and KALSHI_PRIVATE_KEY_PATH (or KALSHI_PRIVATE_KEY) for a key made on "
+                + ("demo.kalshi.co" if settings.kalshi_env == "demo" else "kalshi.com") + "."
             )
-        signer = KalshiSigner.from_file(settings.kalshi_api_key_id, settings.kalshi_private_key_path)
+        if settings.kalshi_private_key:
+            signer = KalshiSigner.from_pem(settings.kalshi_api_key_id, settings.kalshi_private_key,
+                                           source="KALSHI_PRIVATE_KEY")
+        else:
+            signer = KalshiSigner.from_file(settings.kalshi_api_key_id, settings.kalshi_private_key_path)
         return cls(trading_base_url(settings), signer, settings.kalshi_env, transport)
 
     def close(self) -> None:
@@ -100,8 +104,9 @@ class KalshiTradingClient:
     def order(self, order_id: str) -> dict:
         return self._request("GET", f"/portfolio/orders/{order_id}").get("order") or {}
 
-    def fills(self) -> list[dict]:
-        return self._request("GET", "/portfolio/fills", params={"limit": 200}).get("fills") or []
+    def fills(self, min_ts: int | None = None) -> list[dict]:
+        params = {"limit": 200, **({"min_ts": min_ts} if min_ts else {})}
+        return self._request("GET", "/portfolio/fills", params=params).get("fills") or []
 
     # ------------------------------------------------------------ writes (only via trading/orders.py)
 

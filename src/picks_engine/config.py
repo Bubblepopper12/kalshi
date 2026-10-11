@@ -28,6 +28,7 @@ class Settings:
     kalshi_trading_base: str | None = None  # override the host for kalshi_env
     kalshi_api_key_id: str | None = None
     kalshi_private_key_path: str | None = None
+    kalshi_private_key: str | None = None  # PEM text, for hosts like Vercel that store secrets as settings
     max_order_dollars: float = 10.0
     max_daily_dollars: float = 50.0
     max_contracts_per_order: int = 100
@@ -36,6 +37,10 @@ class Settings:
     max_price: float = 0.95
     ticket_ttl_minutes: int = 30
     order_expiry_minutes: int = 15
+
+    @property
+    def trading_keys_set(self) -> bool:
+        return bool(self.kalshi_api_key_id and (self.kalshi_private_key or self.kalshi_private_key_path))
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -52,6 +57,7 @@ class Settings:
             kalshi_trading_base=env.get("KALSHI_TRADING_BASE") or None,
             kalshi_api_key_id=env.get("KALSHI_API_KEY_ID") or None,
             kalshi_private_key_path=env.get("KALSHI_PRIVATE_KEY_PATH") or None,
+            kalshi_private_key=env.get("KALSHI_PRIVATE_KEY") or None,
             max_order_dollars=float(env.get("PICKS_MAX_ORDER_DOLLARS", cls.max_order_dollars)),
             max_daily_dollars=float(env.get("PICKS_MAX_DAILY_DOLLARS", cls.max_daily_dollars)),
             max_contracts_per_order=int(env.get("PICKS_MAX_CONTRACTS_PER_ORDER", cls.max_contracts_per_order)),

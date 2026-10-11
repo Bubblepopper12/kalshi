@@ -1,0 +1,9 @@
+tests/
+CONCEPT.md
+docker-compose.yml
+pyproject.toml
+.env
+.env.*
+*.key
+*.pem
+*.db

@@ -50,10 +50,17 @@ class KalshiSigner:
             raise PermissionError(
                 f"{p} can be read by other users on this machine. Run: chmod 600 {p}"
             )
+        return cls.from_pem(key_id, p.read_bytes(), source=str(p))
+
+    @classmethod
+    def from_pem(cls, key_id: str, pem: bytes | str, source: str = "The private key") -> "KalshiSigner":
+        if isinstance(pem, str):
+            # Settings UIs sometimes store newlines as a literal "\n".
+            pem = pem.strip().replace("\\n", "\n").encode()
         try:
-            key = serialization.load_pem_private_key(p.read_bytes(), password=None)
+            key = serialization.load_pem_private_key(pem, password=None)
         except (ValueError, TypeError) as exc:
-            raise ValueError(f"{p} isn't a readable private key file ({exc}). "
+            raise ValueError(f"{source} isn't a readable private key ({exc}). "
                              "It should start with -----BEGIN and end with -----END lines.") from None
         return cls(key_id, key)
 

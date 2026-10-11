@@ -1,0 +1,5 @@
+# Only what the Vercel web app needs. For the full engine use: pip install -e ".[postgres,board,trading,dev]"
+fastapi>=0.110
+python-multipart>=0.0.9
+httpx>=0.27
+cryptography>=42

@@ -77,6 +77,66 @@ blocks every order until `picks trade resume`.
 The demo exchange's market tickers can differ from the live ones. Use tickers
 from the demo site when trading on demo.
 
+## Web app (Vercel): private to you
+
+The repo deploys to Vercel as a small website (`api/index.py`, `vercel.json`):
+your balance, positions, resting orders and fills, live game markets, and the
+same approve-before-sending order tickets. It keeps no database; every page
+reads your account straight from Kalshi, so Kalshi's history is the record.
+
+**Who can get in:** only someone with your password **and** the 6-digit code
+from your authenticator app. The app stays locked (a "Setup needed" page, no
+login form) if the password is missing or under 16 characters, or if Kalshi
+keys are set without a two-step secret. Sessions last 12 hours. Even when
+logged in, each order needs its own "I approve this exact order" tick, and the
+limits are checked against your live account before sending.
+
+### Setup (once)
+
+1. **Make a password and a two-step secret on your Mac.** In Terminal:
+   ```bash
+   python3 -c "import secrets;print(secrets.token_urlsafe(24))"
+   python3 -c "import base64,os;print(base64.b32encode(os.urandom(20)).decode())"
+   ```
+   The first line is your password. Save it in the Passwords app. The
+   second is your two-step secret. On a Mac or iPhone, open **Passwords** → the
+   entry for your site → **Set Up Verification Code** → **Enter Setup Key** and
+   paste it. Google Authenticator works too.
+2. **In Vercel → the `kalshi` project → Settings → Environment Variables**, add
+   these and tick **Production only** (not Preview or Development):
+
+   | Name | Value |
+   | --- | --- |
+   | `APP_PASSWORD` | the password from step 1 |
+   | `APP_TOTP_SECRET` | the two-step secret from step 1 |
+   | `KALSHI_ENV` | `live` |
+   | `KALSHI_API_KEY_ID` | your Kalshi Key ID |
+   | `KALSHI_PRIVATE_KEY` | the whole private key text, from `-----BEGIN` to `-----END ...-----` |
+   | `PICKS_MAX_ORDER_DOLLARS` | e.g. `5` |
+   | `PICKS_MAX_DAILY_DOLLARS` | e.g. `20` |
+
+   To copy the key text on your Mac without it showing: `pbcopy < ~/.kalshi/kalshi.key`,
+   then paste into the value box.
+3. **Redeploy** (Deployments → ⋯ → Redeploy) so the settings take effect.
+4. Open your site. Log in with the password and the current 6-digit code.
+
+### Emergency stops
+
+- **Cut the bot off from your account:** delete the API key on kalshi.com
+  (Account & security → API keys). Nothing can trade without it.
+- **Pause sending but keep viewing:** add `TRADING_HALTED` = `1` in Vercel and redeploy.
+- **Lock everyone out:** change `APP_PASSWORD` (or `APP_TOTP_SECRET`) and
+  redeploy. That also logs out every existing session.
+
+### Good to know
+
+- Branch previews get no keys (they're Production-only), so they can't trade.
+  On the Hobby plan Vercel also puts preview links behind your Vercel login.
+- Keep the GitHub repo **private** if you'd rather the code isn't public. It
+  never contains your keys either way.
+- One person per deployment. Accounts for other users need a different design
+  (their own logins, their own keys stored encrypted per user); see CONCEPT.md.
+
 ## Quick start
 
 ```bash
@@ -146,6 +206,8 @@ src/picks_engine/
   trading/auth.py      Kalshi API-key request signing (RSA-PSS)
   trading/client.py    authenticated client limited to portfolio reads, limit buys, cancels
   trading/orders.py    ticket -> approve -> checks -> send; limits, halt switch, audit trail
+  trading/limits.py    per-order limits shared by the terminal, board and web app
+  web/app.py           password + two-step web app for Vercel (api/index.py is the entry point)
   board/               Streamlit app and the queries behind it
 ```
 

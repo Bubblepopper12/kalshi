@@ -38,6 +38,11 @@ class Settings:
     ticket_ttl_minutes: int = 30
     order_expiry_minutes: int = 15
 
+    # Picks: sportsbook prices (The Odds API) compared with Kalshi.
+    odds_api_key: str | None = None
+    odds_bookmakers: str | None = None
+    picks_min_edge: float = 0.03
+
     @property
     def trading_keys_set(self) -> bool:
         return bool(self.kalshi_api_key_id and (self.kalshi_private_key or self.kalshi_private_key_path))
@@ -66,4 +71,7 @@ class Settings:
             max_price=float(env.get("PICKS_MAX_PRICE", cls.max_price)),
             ticket_ttl_minutes=int(env.get("PICKS_TICKET_TTL_MINUTES", cls.ticket_ttl_minutes)),
             order_expiry_minutes=int(env.get("PICKS_ORDER_EXPIRY_MINUTES", cls.order_expiry_minutes)),
+            odds_api_key=env.get("ODDS_API_KEY") or None,
+            odds_bookmakers=env.get("ODDS_BOOKMAKERS") or None,
+            picks_min_edge=float(env.get("PICKS_MIN_EDGE", cls.picks_min_edge)),
         )

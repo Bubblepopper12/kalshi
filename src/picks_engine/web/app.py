@@ -1,8 +1,9 @@
 """Password-protected web app (runs on Vercel; see api/index.py and vercel.json).
 
 Pages, in plain English:
-  Home        your cash, today's spending vs. your limit, your bets, waiting orders, recent activity
-  Find a bet  full-game markets grouped by game: "Philadelphia wins · 62¢ · pays $1.00 if right"
+  Picks       where Kalshi sells an outcome for less than the sportsbooks think it's worth, with the why
+  All bets    full-game markets grouped by game: "Philadelphia wins · 62¢ · pays $1.00 if right"
+  My account  your cash, today's spending vs. your limit, your bets, waiting orders, recent activity
   Bet         1. Choose how many  2. Review exactly what you pay / win / lose  3. Approve and send
 
 It keeps no database: everything is read from Kalshi on each page, so Kalshi's
@@ -42,6 +43,8 @@ from ..config import Settings
 from ..kalshi.classify import classify
 from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
 from ..kalshi.leagues import LEAGUES
+from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient, OddsAPIError
+from ..live.picks import build_picks, size
 from ..pricing.fees import kalshi_fee
 from ..trading.client import KalshiAPIError, KalshiTradingClient, TradingNotConfigured
 from ..trading.limits import max_cost, static_checks
@@ -53,19 +56,26 @@ from .ui import esc, page, steps
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 40
+PICKS_TTL = 600  # seconds a league's picks are reused (sportsbook requests are limited)
+PICKS_MIN_REFRESH = 120  # "Refresh" can't fetch again sooner than this
+_PICKS_CACHE: dict[str, tuple[float, object, int | None]] = {}
 TRADING_ERRORS = (KalshiAPIError, TradingNotConfigured, ValueError, PermissionError, httpx.HTTPError)
 
 ORDER_STATUS = {
     "resting": ("Waiting for a seller", "Your order is on Kalshi, waiting for someone to sell at your price or "
                 "better. If nobody does within {mins} minutes, it cancels itself and you pay nothing."),
-    "executed": ("Done: you bought it", "Your bet went through. It now shows under “Your bets” on Home."),
+    "executed": ("Done: you bought it", "Your bet went through. It now shows under “Your bets” in My account."),
     "canceled": ("Not filled", "Nobody sold at your price, so Kalshi canceled it. You paid nothing."),
 }
 
 
 def create_app(trading_transport: httpx.BaseTransport | None = None,
-               market_transport: httpx.BaseTransport | None = None) -> FastAPI:
+               market_transport: httpx.BaseTransport | None = None,
+               odds_transport: httpx.BaseTransport | None = None,
+               clock=None) -> FastAPI:
+    """clock: optional function returning the current UTC datetime (tests pin it)."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    _PICKS_CACHE.clear()
 
     def settings() -> Settings:
         return Settings.from_env()
@@ -150,19 +160,19 @@ def create_app(trading_transport: httpx.BaseTransport | None = None,
 
     # ------------------------------------------------------------ home
 
-    @app.get("/")
+    @app.get("/account")
     def home(request: Request):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
         how = '''<details class="card"><summary>How this works</summary><ol style="margin:10px 0 0 18px;padding:0">
-<li><b>Find a bet.</b> Pick a game and the outcome you believe in.</li>
+<li><b>Pick a bet.</b> Take one of today's Picks, or choose any game under All bets.</li>
 <li><b>Review it.</b> You see exactly what you pay, what you get back if you're right, and what you lose if you're wrong.</li>
 <li><b>Approve it.</b> Nothing is sent to Kalshi until you tick “I approve this bet” and press Send.</li>
 </ol><p class="muted small" style="margin-top:10px">Each contract pays $1.00 if you're right and $0 if you're wrong.
 The price (like 62¢) is roughly the chance the market gives it (62%).</p></details>'''
         if not s.trading_keys_set:
-            return page(s, "Home", '<h1>Home</h1><div class="card"><p>Kalshi keys aren\'t set yet, so your '
+            return page(s, "My account", '<h1>My account</h1><div class="card"><p>Kalshi keys aren\'t set yet, so your '
                         'account can\'t be shown. Add <code>KALSHI_API_KEY_ID</code> and <code>KALSHI_PRIVATE_KEY'
                         '</code> in Vercel, then redeploy.</p></div>' + how, tab="home")
         try:
@@ -173,7 +183,7 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
                 resting = c.orders("resting")
                 fills = c.fills()[:10]
         except TRADING_ERRORS as exc:
-            return page(s, "Home", f'<h1>Home</h1><div class="card bad">Couldn\'t read your Kalshi account: '
+            return page(s, "My account", f'<h1>My account</h1><div class="card bad">Couldn\'t read your Kalshi account: '
                         f'{esc(exc)}</div>', tab="home")
         with market_client(s) as rc:
             names = lookup_names(rc, [p.get("ticker") for p in positions if count_field(p, "position")]
@@ -182,7 +192,8 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
         halted = os.environ.get("TRADING_HALTED") == "1"
         left_today = max(Decimal(str(s.max_daily_dollars)) - committed, Decimal(0))
 
-        parts = ['<h1>Home</h1><p class="lead">Your Kalshi account, read live from Kalshi.</p>']
+        parts = ['<h1>My account</h1><p class="lead">Your own Kalshi money and bets, read live from Kalshi. '
+                 'These are not recommendations; those are on the Picks tab.</p>']
         cash_note = ""
         if cash < Decimal("1"):
             cash_note = ('<p class="warn" style="margin-top:12px">You have no cash to bet with. Add money on '
@@ -192,7 +203,7 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
 <div><div class="muted">You can still spend today</div><div class="big">{money(left_today)}</div>
 <div class="muted small">of your {money(s.max_daily_dollars)} daily limit · {money(s.max_order_dollars)} max per bet</div></div>
 </div>{cash_note}{'<p class="bad" style="margin-top:12px">Sending bets is turned off (TRADING_HALTED).</p>' if halted else ''}
-<p style="margin-top:14px"><a class="btn" href="/find">Find a bet</a></p></div>''')
+<p style="margin-top:14px"><a class="btn" href="/">See today's picks</a></p></div>''')
 
         rows = []
         for h in held:
@@ -225,7 +236,7 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
         parts.append('<div class="card"><h2>Recent activity</h2>' + ("".join(rows) or
                      '<p class="muted">Nothing yet.</p>') + "</div>")
         parts.append(how)
-        return page(s, "Home", "".join(parts), tab="home")
+        return page(s, "My account", "".join(parts), tab="home")
 
     @app.post("/cancel")
     def cancel(request: Request, order_id: str = Form("")):
@@ -239,8 +250,130 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
                 c.cancel(order_id)
         except TRADING_ERRORS as exc:
             return page(s, "Cancel", f'<div class="card"><p class="bad">Not canceled: {esc(exc)}</p>'
-                        '<p><a href="/">Back to Home</a></p></div>', tab="home")
-        return RedirectResponse("/", status_code=303)
+                        '<p><a href="/account">Back to My account</a></p></div>', tab="home")
+        return RedirectResponse("/account", status_code=303)
+
+    # ------------------------------------------------------------ picks
+
+    def kalshi_game_events(rc: KalshiReadOnlyClient, league: str, kind: str) -> list[dict]:
+        series = [x for x in rc.series(category="Sports")
+                  if LEAGUES[league].matches(x)
+                  and classify(x["ticker"], x.get("title") or "") == kind
+                  and not is_partial_game(x["ticker"], x.get("title") or "")][:6]
+        events: list[dict] = []
+        for sr in series:
+            events.extend(rc.events(sr["ticker"], status="open", with_nested_markets=True))
+        return events
+
+    def load_picks(s: Settings, league: str, refresh: bool):
+        """(PicksResult, odds credits left, fetched_at) for one league, cached for a few minutes."""
+        now = time.time()
+        hit = _PICKS_CACHE.get(league)
+        if hit and (now - hit[0] < PICKS_TTL or (refresh and now - hit[0] < PICKS_MIN_REFRESH)):
+            return hit[1], hit[2], hit[0]
+        lg = LEAGUES[league]
+        with market_client(s) as rc:
+            events = kalshi_game_events(rc, league, "moneyline")
+        if not events:
+            result = build_picks([], [], three_way=lg.three_way)
+            left = hit[2] if hit else None
+        else:
+            with OddsAPIClient(s.odds_api_key or "", s.odds_bookmakers or DEFAULT_BOOKMAKERS,
+                               transport=odds_transport) as oc:
+                odds = oc.moneylines(lg.odds_sport)
+            result = build_picks(events, odds.events, three_way=lg.three_way, min_edge=s.picks_min_edge,
+                                 fee_rate=s.kalshi_fee_rate, now=clock() if clock else None)
+            left = odds.requests_remaining
+        _PICKS_CACHE[league] = (now, result, left)
+        return result, left, now
+
+    @app.get("/")
+    def picks_page(request: Request, league: str = "NFL", refresh: str = ""):
+        if (blocked := guard(request)) is not None:
+            return blocked
+        s = settings()
+        league = league.upper() if league.upper() in LEAGUES else "NFL"
+        chips = "".join(f'<a class="{"on" if code == league else ""}" href="/?league={code}">{esc(lg.name)}</a>'
+                        for code, lg in LEAGUES.items())
+        parts = [f'''<h1>Today's picks</h1>
+<p class="lead">A pick shows up when the sportsbooks think something is more likely than Kalshi's price says.
+It's math, not a guarantee, so keep bets small.</p>
+<div class="card"><div class="muted small">League</div><div class="chips">{chips}</div></div>''']
+        if not s.odds_api_key:
+            parts.append('''<div class="card warn"><h2>One more setup step</h2>
+<p>Picks compare Kalshi with sportsbook prices, which come from The Odds API. Get a free key at
+the-odds-api.com, then add it in Vercel → Settings → Environment Variables as <b>ODDS_API_KEY</b>
+(Production, Sensitive) and redeploy.</p></div>''')
+            return page(s, "Picks", "".join(parts), tab="picks")
+        try:
+            result, left, fetched = load_picks(s, league, refresh == "1")
+        except (httpx.HTTPError, OddsAPIError) as exc:
+            parts.append(f'<div class="card bad">Couldn\'t load prices right now: {esc(exc)}</div>')
+            return page(s, "Picks", "".join(parts), tab="picks")
+
+        cash = None
+        if s.trading_keys_set:
+            try:
+                with trading_client(s) as c:
+                    cash = c.balance_dollars()
+            except TRADING_ERRORS:
+                cash = None
+        for p in result.picks + result.near:
+            size(p, cash, s.max_order_dollars)
+
+        age = int((time.time() - fetched) // 60)
+        credits = f" · {left} sportsbook requests left this month" if left is not None else ""
+        parts.append(f'''<p class="muted small">Checked {result.games_checked} games, matched {result.games_matched}
+with the sportsbooks · updated {"just now" if age == 0 else f"{age} min ago"}{credits} ·
+<a href="/?league={league}&refresh=1">Refresh</a></p>''')
+
+        def card(p, strong: bool) -> str:
+            pct = lambda x: f"{x * 100:.0f}%"  # noqa: E731
+            books = ", ".join(p.books[:4]) + (f" +{len(p.books) - 4} more" if len(p.books) > 4 else "")
+            n = max(p.contracts, 1)
+            href = "/bet?" + urlencode({"ticker": p.ticker, "side": "yes", "contracts": n,
+                                        "price": int(p.ask * 100)})
+            if p.contracts > 0:
+                suggest = (f"{p.contracts} contract{'s' if p.contracts != 1 else ''} · costs about {money(p.stake)} · "
+                           f"pays {money(p.contracts)} if right")
+            elif cash is not None and cash < p.cost:
+                suggest = "Add cash on Kalshi to take this one."
+            else:
+                suggest = "Too small an edge for your bankroll; 1 contract at most."
+            notes = "".join(f'<p class="warn small">{esc(x)}</p>' for x in p.notes)
+            when_txt = f"starts {esc(when(p.starts))}" if p.starts else esc(day_label(p.day))
+            return f'''<div class="card"><div class="muted small">{esc(p.game)} · {when_txt}</div>
+<h2 style="margin:6px 0">{esc(p.outcome)}</h2>
+<span class="pill" style="{"background:var(--accent);color:var(--accent-ink)" if strong else ""}">
+{p.edge * 100:+.1f} points cheaper on Kalshi</span>
+<dl class="sum" style="margin-top:12px">
+<dt>Sportsbooks say</dt><dd>{pct(p.fair)} chance <span class="muted small" style="font-weight:400">
+({len(p.books)} books: {esc(books)}; range {pct(p.book_low)}–{pct(p.book_high)})</span></dd>
+<dt>Kalshi price</dt><dd>{cents(p.ask)} + {p.fee * 100:.1f}¢ fee = {p.cost * 100:.1f}¢ ({pct(p.cost)})</dd>
+<dt>Suggested</dt><dd>{esc(suggest)}</dd></dl>{notes}
+<p style="margin-top:12px"><a class="btn" href="{esc(href)}">Bet this →</a>
+<span class="muted small">You'll review it before anything is sent.</span></p></div>'''
+
+        if result.picks:
+            parts.extend(card(p, True) for p in result.picks)
+        else:
+            parts.append(f'''<div class="card"><h2>No strong picks right now</h2>
+<p class="muted">Nothing in {esc(LEAGUES[league].name)} is at least {s.picks_min_edge * 100:.0f} points cheaper on
+Kalshi than at the sportsbooks. That's normal; check back closer to game time or try another league.</p></div>''')
+        if result.near:
+            parts.append('<details class="card"><summary>Close calls (cheaper, but by less than '
+                         f'{s.picks_min_edge * 100:.0f} points)</summary>'
+                         + "".join(card(p, False) for p in result.near[:10]) + "</details>")
+        if result.unmatched:
+            parts.append('<p class="muted small">Couldn&#x27;t match with the sportsbooks: '
+                         + esc(", ".join(result.unmatched[:8])) + ("…" if len(result.unmatched) > 8 else "") + "</p>")
+        parts.append('''<details class="card"><summary>What goes into a pick</summary>
+<p style="margin-top:10px"><b>Now:</b> the sportsbooks' prices for the same game, with their built-in margin
+removed, compared with Kalshi's price plus Kalshi's fee.</p>
+<p><b>Coming next:</b> tipster track records (only people whose picks we've graded beat the market) and the bot's own
+model. Picks will say which of the three agree.</p>
+<p class="muted small">Suggested size: a quarter of the "Kelly" amount for your cash, never above your per-bet limit.</p></details>''')
+        return page(s, "Picks", "".join(parts), tab="picks")
 
     # ------------------------------------------------------------ find a bet
 
@@ -258,13 +391,7 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
         games, error = [], ""
         try:
             with market_client(s) as rc:
-                series = [x for x in rc.series(category="Sports")
-                          if LEAGUES[league].matches(x)
-                          and classify(x["ticker"], x.get("title") or "") == kind
-                          and not is_partial_game(x["ticker"], x.get("title") or "")][:6]
-                events = []
-                for sr in series:
-                    events.extend(rc.events(sr["ticker"], status="open", with_nested_markets=True))
+                events = kalshi_game_events(rc, league, kind)
             games = group_games(events, kind)[:MAX_GAMES]
         except httpx.HTTPError as exc:
             error = f"Couldn't load bets from Kalshi right now ({exc}). Try again in a minute."
@@ -274,7 +401,7 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
                                f'{esc(lg.name)}</a>' for code, lg in LEAGUES.items())
         kind_chips = "".join(f'<a class="{"on" if k == kind else ""}" href="{esc(link(kind=k))}">{label}</a>'
                              for k, (label, _) in KIND_LABELS.items())
-        parts = [f'''<h1>Find a bet</h1><p class="lead">Pick a game, then the outcome you think will happen.
+        parts = [f'''<h1>All bets</h1><p class="lead">Everything Kalshi offers, not recommendations (those are on Picks). Pick a game, then the outcome you think will happen.
 Each contract pays <b>$1.00</b> if you're right. The price is roughly the chance the market gives it.</p>
 <div class="card"><div class="muted small">League</div><div class="chips">{league_chips}</div>
 <div class="muted small" style="margin-top:10px">Type of bet</div><div class="chips">{kind_chips}</div>
@@ -301,7 +428,7 @@ Each contract pays <b>$1.00</b> if you're right. The price is roughly the chance
                             f'{against}{action}</div>')
             parts.append(f'<div class="card"><h2>{esc(g.title)}</h2>'
                          f'<p class="muted small">{esc(day_label(g.day))}</p>{"".join(rows)}</div>')
-        return page(s, "Find a bet", "".join(parts), tab="find")
+        return page(s, "All bets", "".join(parts), tab="find")
 
     # ------------------------------------------------------------ bet: choose → review → send
 
@@ -319,7 +446,7 @@ Each contract pays <b>$1.00</b> if you're right. The price is roughly the chance
         err = "".join(f'<p class="bad">{esc(e)}</p>' for e in errors)
         if info is None:
             return page(s, "Bet", f'''{steps(0)}<h1>Choose a bet</h1>{err}
-<div class="card"><p>Start from <a href="/find">Find a bet</a> and tap the outcome you want.</p>
+<div class="card"><p>Start from <a href="/">Picks</a> or <a href="/find">All bets</a> and tap the outcome you want.</p>
 <details><summary>Advanced: enter a market ticker</summary>
 <form class="stack" method="get" action="/bet" style="margin-top:12px">
 <label>Market ticker<input name="ticker" value="{esc(ticker)}" autocapitalize="characters" required></label>
@@ -352,14 +479,16 @@ document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFi
         return RedirectResponse("/bet?" + urlencode({"ticker": ticker, "side": side}), status_code=303)
 
     @app.get("/bet")
-    def bet(request: Request, ticker: str = "", side: str = "yes"):
+    def bet(request: Request, ticker: str = "", side: str = "yes", contracts: str = "1", price: str = ""):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
         ticker = ticker.strip().upper()
         if ticker and not TICKER_RE.match(ticker):
             return choose_page(s, "", "yes", errors=["That doesn't look like a Kalshi market ticker."])
-        return choose_page(s, ticker, side if side in ("yes", "no") else "yes")
+        contracts = contracts if contracts.isdigit() and int(contracts) > 0 else "1"
+        price = price if price.isdigit() and 0 < int(price) < 100 else ""
+        return choose_page(s, ticker, side if side in ("yes", "no") else "yes", contracts, price)
 
     @app.post("/bet")
     def review(request: Request, ticker: str = Form(""), side: str = Form("yes"),
@@ -432,12 +561,12 @@ I approve this bet: {esc(statement)}, {n:,} contracts, at most {money(cost)}</la
 
         def refuse(msg: str) -> HTMLResponse:
             return page(s, "Not sent", f'''{steps(2)}<h1>Not sent</h1><div class="card"><p class="bad">{esc(msg)}</p>
-<p>Nothing was bought.</p><p><a class="btn ghost" href="/find">Back to Find a bet</a> <a href="/">Home</a></p></div>''',
+<p>Nothing was bought.</p><p><a class="btn ghost" href="/">Back to Picks</a> <a href="/account">My account</a></p></div>''',
                         tab="find")
 
         t = verify(s, token, "ticket")
         if t is None:
-            return refuse("This review is expired or invalid. Start the bet again from Find a bet.")
+            return refuse("This review is expired or invalid. Start the bet again from Picks or All bets.")
         if approve != "yes":
             return refuse("You didn't tick “I approve this bet”, so nothing was sent.")
         if t["env"] != s.kalshi_env:
@@ -458,7 +587,7 @@ I approve this bet: {esc(statement)}, {n:,} contracts, at most {money(cost)}</la
                                   f"would go over your {money(s.max_daily_dollars)} daily limit.")
                 if open_n >= s.max_open_orders:
                     return refuse(f"You already have {open_n} waiting orders (the limit is {s.max_open_orders}). "
-                                  "Cancel one on Home or wait for them to fill.")
+                                  "Cancel one in My account or wait for them to fill.")
                 balance = c.balance_dollars()
                 if balance < cost:
                     return refuse(f"Your cash is {money(balance.quantize(Decimal('0.01')))}; this bet could cost "
@@ -468,21 +597,21 @@ I approve this bet: {esc(statement)}, {n:,} contracts, at most {money(cost)}</la
                 result = c.create_limit_buy(ticker=t["ticker"], side=t["side"], count=n, price=px,
                                             client_order_id=t["coid"], expiration_ts=expiration)
         except KalshiAPIError as exc:
-            hint = " This bet may already have been sent; check Home." if exc.status == 409 else ""
+            hint = " This bet may already have been sent; check My account." if exc.status == 409 else ""
             return refuse(f"Kalshi said no: {exc}.{hint}")
         except httpx.HTTPError as exc:
             return refuse(f"The connection dropped ({exc}). The bet may or may not have reached Kalshi. "
-                          "Check “Waiting orders” and “Recent activity” on Home before trying again.")
+                          "Check “Waiting orders” and “Recent activity” in My account before trying again.")
         except (TradingNotConfigured, ValueError, PermissionError) as exc:
             return refuse(str(exc))
         order = result.get("order") or {}
         status = (order.get("status") or "resting").lower()
-        headline, detail = ORDER_STATUS.get(status, (f"Sent ({status})", "Check Home for the latest."))
+        headline, detail = ORDER_STATUS.get(status, (f"Sent ({status})", "Check My account for the latest."))
         filled = count_field(order, "fill_count") or 0
         return page(s, "Sent", f'''{steps(2)}<h1>{esc(headline)}</h1><div class="card good">
 <p><b>{esc(t.get("label") or t["ticker"])}</b></p>
 <p>{n:,} contracts at up to {cents(px)} · {filled:,} filled so far</p>
 <p class="muted small">{esc(detail.format(mins=s.order_expiry_minutes))}</p></div>
-<p><a class="btn" href="/">Go to Home</a> <a class="btn ghost" href="/find">Find another bet</a></p>''', tab="find")
+<p><a class="btn" href="/account">See it in My account</a> <a class="btn ghost" href="/">Back to Picks</a></p>''', tab="find")
 
     return app

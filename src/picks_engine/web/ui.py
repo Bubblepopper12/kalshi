@@ -65,7 +65,7 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600}
 code{font-size:13px;word-break:break-all;color:var(--muted)}
 """
 
-TABS = (("home", "/", "Home"), ("find", "/find", "Find a bet"))
+TABS = (("picks", "/", "Picks"), ("find", "/find", "All bets"), ("home", "/account", "My account"))
 STEPS = ("Choose", "Review", "Done")
 
 

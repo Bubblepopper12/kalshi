@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -86,13 +87,13 @@ def token_from(html: str) -> str:
 def test_locked_without_password(monkeypatch, exchange, fake):
     monkeypatch.setenv("APP_PASSWORD", "short")
     web = TestClient(create_app(), base_url="https://testserver")
-    for path in ("/", "/login", "/find", "/bet"):
+    for path in ("/", "/account", "/login", "/find", "/bet"):
         assert "Setup needed" in web.get(path).text
     assert web.post("/login", data={"password": "short"}, follow_redirects=False).headers["location"] == "/login"
 
 
 def test_login_required(web):
-    for path in ("/", "/find", "/bet"):
+    for path in ("/", "/account", "/find", "/bet"):
         r = web.get(path, follow_redirects=False)
         assert r.status_code == 303 and r.headers["location"] == "/login"
     assert web.post("/send", data={"token": "x", "approve": "yes"}, follow_redirects=False).status_code == 303
@@ -111,7 +112,7 @@ def test_login_required(web):
 
 def test_home_uses_plain_names(web, exchange):
     login(web)
-    r = web.get("/")
+    r = web.get("/account")
     assert "LIVE" in r.text and "$100.00" in r.text and r.headers["cache-control"] == "no-store"
     assert "Your bets" in r.text and "PHI wins" in r.text  # position named, not shown as a ticker
     assert "3 contracts · pays $3.00 if right" in r.text
@@ -120,7 +121,7 @@ def test_home_uses_plain_names(web, exchange):
 def test_home_warns_when_no_cash(web, exchange):
     login(web)
     exchange.balance_cents = 0
-    assert "You have no cash to bet with" in web.get("/").text
+    assert "You have no cash to bet with" in web.get("/account").text
 
 
 def test_find_groups_games_and_hides_partial_markets(web, fake):
@@ -216,10 +217,11 @@ def test_halt_balance_and_env_switch(web, exchange, monkeypatch):
 def test_cancel(web, exchange):
     login(web)
     web.post("/send", data={"token": token_from(review(web).text), "approve": "yes"})
-    home = web.get("/").text
+    home = web.get("/account").text
     assert "Waiting orders" in home and "Cancel" in home
     r = web.post("/cancel", data={"order_id": "ord-1"}, follow_redirects=False)
-    assert r.status_code == 303 and exchange.orders["ord-1"]["status"] == "canceled"
+    assert r.status_code == 303 and r.headers["location"] == "/account"
+    assert exchange.orders["ord-1"]["status"] == "canceled"
     assert "valid order" in web.post("/cancel", data={"order_id": "../x"}).text
 
 
@@ -255,3 +257,65 @@ def test_vercel_entry_loads_plain_defaults(monkeypatch, tmp_path):
     assert s.kalshi_env == "live" and s.max_order_dollars == 5 and s.max_daily_dollars == 7
     defaults = (Path(__file__).resolve().parent.parent / "src/picks_engine/web/web.env").read_text().upper()
     assert "PASSWORD" not in defaults.replace("NEVER PUT PASSWORDS", "") and "PRIVATE_KEY=" not in defaults
+
+
+def odds_feed(home="Philadelphia Eagles", away="Dallas Cowboys", books=((-200, 170), (-190, 160), (-210, 175))):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        event = {"home_team": home, "away_team": away, "commence_time": "2026-10-18T17:00:00Z",
+                 "bookmakers": [{"key": f"b{i}", "title": name, "markets": [{"key": "h2h", "outcomes": [
+                     {"name": home, "price": h}, {"name": away, "price": a}]}]}
+                     for i, ((h, a), name) in enumerate(zip(books, ("Pinnacle", "DraftKings", "FanDuel")))]}
+        return httpx.Response(200, json=[event], headers={"x-requests-remaining": "480"})
+    return handler, calls
+
+
+def picks_web(fake, exchange, handler):
+    # Real team names on the fake Kalshi game: Dallas at Philadelphia, PHI YES at 58c, DAL at 43c.
+    for m in fake.markets["KXNFLGAME"]:
+        if m["event_ticker"].endswith("DALPHI"):
+            phi = m["ticker"].endswith("PHI")
+            m.update(yes_sub_title="Philadelphia" if phi else "Dallas", yes_ask=58 if phi else 43)
+    app = create_app(trading_transport=httpx.MockTransport(exchange.handler),
+                     market_transport=httpx.MockTransport(fake.handler), odds_transport=httpx.MockTransport(handler),
+                     clock=lambda: datetime(2026, 10, 17, 12, tzinfo=timezone.utc))
+    return TestClient(app, base_url="https://testserver")
+
+
+def test_picks_page_shows_a_pick_with_reasons(env, exchange, fake, monkeypatch):
+    monkeypatch.setenv("ODDS_API_KEY", "odds-key")
+    handler, calls = odds_feed()
+    web = picks_web(fake, exchange, handler)
+    login(web)
+    r = web.get("/")
+    assert "Today's picks" in r.text and "Philadelphia wins" in r.text
+    assert "cheaper on Kalshi" in r.text and "Sportsbooks say" in r.text and "65% chance" in r.text
+    assert "Pinnacle" in r.text and "480 sportsbook requests left" in r.text
+    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;contracts=" in r.text
+    assert "price=58" in r.text and "Dallas wins" not in r.text.split("Close calls")[0]
+    assert len(calls) == 1 and calls[0].url.path.endswith("/americanfootball_nfl/odds")
+    web.get("/")  # cached: no second sportsbook request
+    web.get("/?refresh=1")  # too soon to refresh again
+    assert len(calls) == 1
+
+
+def test_picks_page_without_odds_key_explains_setup(web):
+    login(web)
+    r = web.get("/")
+    assert "ODDS_API_KEY" in r.text and "the-odds-api.com" in r.text
+
+
+def test_picks_page_no_strong_picks(env, exchange, fake, monkeypatch):
+    monkeypatch.setenv("ODDS_API_KEY", "odds-key")
+    handler, _ = odds_feed(books=((-130, 110), (-135, 115)))  # Philadelphia ~55%: Kalshi's 58c is too dear
+    web = picks_web(fake, exchange, handler)
+    login(web)
+    assert "No strong picks right now" in web.get("/").text
+
+
+def test_bet_link_prefills_contracts_and_price(web):
+    login(web)
+    r = web.get(f"/bet?ticker={TICKER}&side=yes&contracts=7&price=58")
+    assert 'value="7"' in r.text and 'value="58"' in r.text

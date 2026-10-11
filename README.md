@@ -121,6 +121,25 @@ limits are checked against your live account before sending.
 3. **Redeploy** (Deployments → ⋯ → Redeploy) so the settings take effect.
 4. Open your site. Log in with the password and the current 6-digit code.
 
+### Picks (the bot's recommendations)
+
+The **Picks** tab is the first page after login. For each league it compares
+Kalshi's full-game winner prices with the sportsbooks' prices for the same game
+(Pinnacle, DraftKings, FanDuel, BetMGM, Caesars and others, via The Odds API),
+removes the books' built-in margin, and shows a pick when Kalshi sells an outcome
+at least 3 points cheaper after Kalshi's fee. Each pick says why (the books'
+chance, Kalshi's price, how many books agree), suggests a size (quarter-Kelly on
+your cash, never above your per-bet limit) and links to the normal review →
+approve flow. Sportsbooks are only a price reference: all trading is on Kalshi.
+
+Setup: get a free key at the-odds-api.com (500 requests a month; each league
+refresh uses one, results are reused for 10 minutes), then add `ODDS_API_KEY`
+in Vercel (Production, Sensitive) and redeploy. Optional: `PICKS_MIN_EDGE`
+(default `0.03`), `ODDS_BOOKMAKERS` (comma-separated bookmaker keys).
+
+Not in picks yet: tipster track records and the bot's own model (they need
+collected history first), spreads and totals.
+
 ### Emergency stops
 
 - **Cut the bot off from your account:** delete the API key on kalshi.com
@@ -209,6 +228,9 @@ src/picks_engine/
   trading/orders.py    ticket -> approve -> checks -> send; limits, halt switch, audit trail
   trading/limits.py    per-order limits shared by the terminal, board and web app
   web/app.py           password + two-step web app for Vercel (api/index.py is the entry point)
+  live/odds_api.py     sportsbook moneylines from The Odds API (read-only)
+  live/teams.py        matches Kalshi team names to sportsbook names, refuses ambiguous games
+  live/picks.py        de-vigged consensus vs. Kalshi price + fee -> picks, sizing
   board/               Streamlit app and the queries behind it
 ```
 

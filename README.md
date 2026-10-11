@@ -1,0 +1,137 @@
+# Kalshi Picks Engine
+
+A research tool, not a trading bot. It stores picks, results, odds and Kalshi
+prices, scores every tipster by their real track record, and gives Logan a
+ranked pick board. **Logan places every trade himself.** The engine never logs
+in, holds funds or submits orders. The full design is in [CONCEPT.md](CONCEPT.md).
+
+## Read-only by construction
+
+- `KalshiReadOnlyClient` only sends `GET` requests. Any other method, or any
+  request carrying Kalshi credentials, raises before it leaves the machine.
+- There is no setting for an API key, and no code that touches an account,
+  balance, position or order endpoint.
+- The board records what Logan *says* he did (Took it / Pass, price, contracts).
+  It never sees his account.
+
+## Quick start
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[postgres,board,dev]"
+
+docker compose up -d            # Postgres 16 + TimescaleDB on localhost:5432
+cp .env.example .env && set -a && . ./.env && set +a
+
+picks init-db                   # tables + hypertables
+picks discover NFL              # which Kalshi series count as NFL today
+picks sync NFL                  # series, events, markets + first price snapshot
+picks snapshot NFL --every 300  # price snapshot of every open market, every 5 min
+picks gate 1 --league NFL       # Phase 1 gate: every open NFL game market stored?
+picks board                     # Streamlit pick board on http://localhost:8501
+```
+
+No Docker? `PICKS_DATABASE_URL=sqlite:///picks.db` works for a quick try.
+
+### Schedule (cron, UTC)
+
+```cron
+# Daily listing sync (new series and markets), morning run
+0 11 * * *   picks sync NFL CFB NBA
+# Price snapshots every 5 minutes
+*/5 * * * *  picks snapshot NFL CFB NBA
+# Pull settlements overnight, then rescore tipsters
+0 8 * * *    picks settle NFL CFB NBA && picks score
+```
+
+## What each command does
+
+| Command | What it does |
+| --- | --- |
+| `picks leagues` | The ten supported leagues and their priority. |
+| `picks discover LEAGUE` | Reads Kalshi's live `/series` listing and shows the series that match the league, with the pick type each maps to. Nothing about soccer depth is hard-coded. |
+| `picks sync LEAGUE...` | Upserts series, events and markets (with rules text and raw payload) and stores one price snapshot per market. Re-running is safe. |
+| `picks snapshot LEAGUE... [--every 300]` | One paginated `/markets` call per series; one bid/ask row per open market. Markets listed since the last sync are added, so none are missed. |
+| `picks settle LEAGUE...` | Refreshes status and result for markets past their close time (feeds the weekly report). |
+| `picks gate 1 --league NFL` | Compares Kalshi's live open game markets (moneyline, spread, total) to the database. Exits 1 and lists what's missing if any are absent. |
+| `picks link LEAGUE` | Attaches Kalshi game events to `games` using date + team codes. Misses go to `id_review_queue`. |
+| `picks score` | Recomputes `tipster_scores` (trust and tier per tipster, league and pick type) from `pick_grades`. |
+| `picks board` | Opens the Streamlit board: pick board, pick cards with Took it / Pass, the raw Kalshi market view and the weekly report. |
+
+Every sync and snapshot writes a row to `sync_runs` (ok/failed, counts, error).
+
+## Code map
+
+```
+src/picks_engine/
+  config.py            settings from environment variables
+  db/schema.py         every warehouse table (see CONCEPT.md "Data model")
+  db/session.py        engine, init (Timescale hypertables), dialect-aware upsert
+  kalshi/client.py     read-only HTTP client, price parsing, order book maths
+  kalshi/leagues.py    league definitions + how to spot their series in live listings
+  kalshi/classify.py   series/market -> moneyline | spread | total | prop | combo | future
+  kalshi/sync.py       listing sync, snapshots, order books, settlements, Phase 1 gate
+  ids/mapping.py       alias table, review queue, Kalshi event -> game linking
+  pricing/             American odds, de-vig (power / multiplicative), Kalshi fee, edge, Kelly
+  scoring/grading.py   win/loss/push, units, closing-line value, "seen before kickoff" rule
+  scoring/trust.py     recency weights, shrinkage, z-scores, Proven/Promising/Neutral/Fade
+  scoring/jobs.py      rescore tipsters from the database
+  picks/generate.py    tipster signal, blend, edge vs Kalshi, filters, stake guide
+  picks/combos.py      joint probability of correlated legs (Gaussian copula simulation)
+  picks/store.py       save suggestions, record Logan's decisions
+  board/               Streamlit app and the queries behind it
+```
+
+## Starting-point numbers (tune by backtest)
+
+| Setting | Default | Where |
+| --- | --- | --- |
+| ROI shrinkage k | 200 | `ScoringParams.roi_k` |
+| CLV shrinkage k | 50 | `ScoringParams.clv_k` |
+| Trust weights | 0.6 CLV, 0.4 ROI | `ScoringParams.w_clv / w_roi` |
+| Recency half-life | 365 days | `ScoringParams.half_life_days` |
+| Proven | top 10% of the group, 300+ picks, trust > 0 | `ScoringParams` |
+| Fade | 300+ picks, CLV t-stat ≤ −2 | `ScoringParams.fade_t` |
+| Blend weights | model 0.35, market 0.45, tipsters 0.20 (logit space) | `BlendParams` |
+| Minimum edge | 3 points after fees | `BlendParams.min_edge` |
+| Minimum depth | 100 contracts at the ask | `BlendParams.min_depth` |
+| Stake guide | quarter Kelly, cap 2% | `BlendParams.kelly_fraction / stake_cap` |
+| Kalshi fee | `ceil_to_cent(0.07 × C × P × (1−P))`, per contract at C = 100 | `KALSHI_FEE_RATE`, `KALSHI_FEE_CONTRACTS` |
+
+A board pick needs the model and the de-vigged sportsbook number both above the
+Kalshi cost (price + fee), tracked tipsters not net against it, 3+ points of
+edge, enough depth and no unconfirmed key injury. Both YES and NO are checked
+on every contract.
+
+## Build status
+
+| Phase | Status |
+| --- | --- |
+| 1. Kalshi sync + NFL | **Built.** Discovery, listing sync, 5-minute snapshots, order books, settlements and the gate check. Run `picks gate 1` against live Kalshi to pass the gate. |
+| 2. NFL odds and results backfill | Schema ready (`games`, `odds_snapshots` hypertable, `plays`, `player_game_stats`). Loaders for nflverse and The Odds API come next. |
+| 3. NFL tipster ingestion | Schema, alias table and review queue ready; grading rule for "captured before kickoff" built. Scrapers come next, one source at a time after checking each site's terms. |
+| 4. Scoring and backtest | Grading, CLV, trust and tiers built and tested; backtest harness comes after Phase 2–3 data exists. |
+| 5. Pick board v1 | Built (Streamlit). Fills up once suggestions are generated from real data. |
+| 6. Expand | All ten leagues are defined; `picks sync CFB NBA EPL ...` already works for Kalshi data. Models, props and combos per league come later. |
+
+## Before the first live run
+
+- **API host.** `KALSHI_API_BASE` defaults to
+  `https://external-api.kalshi.com/trade-api/v2` (from the concept). If that host
+  doesn't answer, Kalshi's documented public host is
+  `https://api.elections.kalshi.com/trade-api/v2` (it serves every market, not
+  just elections). The code was tested against a fake Kalshi API because the build
+  machine couldn't reach Kalshi, so the first `picks discover NFL` is the real
+  check. Both legacy cent fields (`yes_ask: 54`) and newer dollar fields
+  (`yes_ask_dollars: "0.5400"`) are read.
+- **Fees.** Check Kalshi's current fee schedule for sports series and set
+  `KALSHI_FEE_RATE` if it differs from 0.07.
+- **Rules.** API use falls under Kalshi's Developer Agreement. Kalshi is 18+ and
+  unavailable in some states. Check each tipster site's terms before scraping it.
+
+## Tests
+
+```bash
+pytest                                                     # SQLite
+PICKS_TEST_DATABASE_URL=postgresql+psycopg://... pytest    # Postgres (drops and recreates tables)
+```

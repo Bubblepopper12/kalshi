@@ -128,13 +128,28 @@ def test_find_groups_games_and_hides_partial_markets(web, fake):
     fake.series.append({"ticker": "KXNFL2H", "title": "Pro Football 2nd Half Winner", "category": "Sports"})
     fake.markets["KXNFL2H"] = [dict(fake.markets["KXNFLGAME"][0], ticker="KXNFL2H-26OCT18DALPHI-PHI",
                                     event_ticker="KXNFL2H-26OCT18DALPHI")]
+    fake.series.append({"ticker": "KXSBLGAME", "title": "Slovak Basketball League", "category": "Sports"})
+    fake.markets["KXSBLGAME"] = [dict(fake.markets["KXNFLGAME"][0], ticker="KXSBLGAME-26OCT18BKSNV-BK",
+                                      event_ticker="KXSBLGAME-26OCT18BKSNV")]
     login(web)
-    r = web.get("/find?league=NFL&kind=moneyline")
-    assert "PHI wins" in r.text and "KC wins" in r.text and "Sun, Oct 18" in r.text
-    assert "pays $1.00 if right" in r.text
-    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes" in r.text
+    r = web.get("/find")  # all leagues by default
+    assert 'id="q"' in r.text and 'id="count"' in r.text  # search box; the count is filled in by the browser
+    assert "KXNFLGAME-26OCT18DALPHI" in r.text and "KXNBAGAME" not in r.text
+    assert "Sun, Oct 18" in r.text and "NFL" in r.text
+    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;price=55" in r.text
     assert "KXNFL2H" not in r.text  # half-game market hidden
+    assert "KXSBL" not in r.text  # Slovak basketball is not the Super Bowl
+    assert 'data-k="' in r.text and "sun sunday oct october 18" in r.text  # searchable by day
     assert web.get("/markets", follow_redirects=False).headers["location"].startswith("/find")
+
+
+def test_stretched_prices_are_flagged(web, fake):
+    for m in fake.markets["KXNFLGAME"]:
+        if m["ticker"].endswith("KCBUF-KC"):
+            m.update(yes_ask_dollars="0.7100")  # KC 71c + BUF 40c = $1.11
+    login(web)
+    r = web.get("/find?league=NFL")
+    assert "Prices add up to $1.11" in r.text and 'data-thin="1"' in r.text
 
 
 def test_choose_page_explains_the_bet(web):
@@ -290,11 +305,14 @@ def test_picks_page_shows_a_pick_with_reasons(env, exchange, fake, monkeypatch):
     web = picks_web(fake, exchange, handler)
     login(web)
     r = web.get("/")
-    assert "Today's picks" in r.text and "Philadelphia wins" in r.text
-    assert "cheaper on Kalshi" in r.text and "Sportsbooks say" in r.text and "65% chance" in r.text
-    assert "Pinnacle" in r.text and "480 sportsbook requests left" in r.text
-    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;contracts=" in r.text
-    assert "price=58" in r.text and "Dallas wins" not in r.text.split("Close calls")[0]
+    best = r.text.split("Every game")[0]
+    assert "Best picks" in best and "Philadelphia wins" in best and "Dallas wins" not in best
+    assert "cheaper on Kalshi" in best and "Sportsbooks say" in best and "65% chance" in best
+    assert "Pinnacle" in best and "480 sportsbook lookups left" in r.text
+    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;contracts=" in best and "price=58" in best
+    every = r.text.split("Every game")[1]
+    assert "Books 65%" in every and "Books 35%" in every  # both teams compared, even the non-pick
+    assert "eagles" in every and "cowboys" in every  # nicknames are searchable
     assert len(calls) == 1 and calls[0].url.path.endswith("/americanfootball_nfl/odds")
     web.get("/")  # cached: no second sportsbook request
     web.get("/?refresh=1")  # too soon to refresh again
@@ -312,7 +330,7 @@ def test_picks_page_no_strong_picks(env, exchange, fake, monkeypatch):
     handler, _ = odds_feed(books=((-130, 110), (-135, 115)))  # Philadelphia ~55%: Kalshi's 58c is too dear
     web = picks_web(fake, exchange, handler)
     login(web)
-    assert "No strong picks right now" in web.get("/").text
+    assert "No strong picks in NFL right now" in web.get("/").text
 
 
 def test_bet_link_prefills_contracts_and_price(web):

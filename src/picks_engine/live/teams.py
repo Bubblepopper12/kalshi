@@ -23,8 +23,13 @@ DROP = {"fc", "cf", "sc", "afc", "the", "de", "club", "ac", "ssc", "as", "cd", "
 DRAW_WORDS = {"tie", "draw"}
 
 
+# Letters Unicode doesn't split into base letter + accent, so NFKD alone would drop them.
+_SPECIAL = str.maketrans({"ø": "o", "Ø": "O", "æ": "ae", "Æ": "AE", "ß": "ss", "ł": "l", "Ł": "L",
+                          "đ": "d", "Đ": "D", "ı": "i", "œ": "oe", "Œ": "OE"})
+
+
 def words(name: str) -> list[str]:
-    text = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower()
+    text = unicodedata.normalize("NFKD", (name or "").translate(_SPECIAL)).encode("ascii", "ignore").decode().lower()
     text = re.sub(r"\(([^)]*)\)", r" \1 ", text)
     out: list[str] = []
     for w in re.findall(r"[a-z0-9]+\.?", text):
@@ -35,7 +40,16 @@ def words(name: str) -> list[str]:
     return out
 
 
+def _fold(w: str) -> str:
+    """Kalshi spells ø/ö/ü/ä as oe/ue/ae ("Bodoe"); sportsbooks often drop them to o/u/a."""
+    return w.replace("oe", "o").replace("ue", "u").replace("ae", "a")
+
+
 def _word_matches(k: str, book_words: list[str]) -> bool:
+    return _plain_match(k, book_words) or _plain_match(_fold(k), [_fold(b) for b in book_words])
+
+
+def _plain_match(k: str, book_words: list[str]) -> bool:
     for b in book_words:
         if k == b:
             return True

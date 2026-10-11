@@ -13,7 +13,7 @@ from ..kalshi.classify import classify
 from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
 from ..trading.client import KalshiTradingClient
 from ..trading.limits import max_cost
-from .describe import outcome
+from ..live.board import outcome_text
 
 MAX_NAME_LOOKUPS = 25
 
@@ -61,7 +61,7 @@ def name_market(m: dict) -> MarketName:
     kind = classify(m.get("event_ticker", "").split("-")[0], m.get("title") or "")
     return MarketName(
         ticker=m.get("ticker", ""),
-        statement=outcome(m, kind),
+        statement=outcome_text(m, kind),
         question=(m.get("title") or "").strip(),
         yes_bid=price_field(m, "yes_bid"), no_bid=price_field(m, "no_bid"),
         yes_ask=price_field(m, "yes_ask"), no_ask=price_field(m, "no_ask"),

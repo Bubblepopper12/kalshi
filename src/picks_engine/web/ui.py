@@ -25,7 +25,7 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
 header .brand{font-weight:800;font-size:19px;margin-right:auto}
 header a.tab{text-decoration:none;color:var(--ink);padding:8px 14px;border-radius:999px;font-weight:600}
 header a.tab.on{background:var(--ink);color:var(--bg)}
-header a.out{color:var(--muted);font-size:15px;text-decoration:none;padding:8px}
+header a.logout{color:var(--muted);font-size:15px;text-decoration:none;padding:8px}
 h1{font-size:26px;line-height:1.2;margin:0 0 6px}
 h2{font-size:19px;margin:0 0 10px}
 p{margin:0 0 10px}
@@ -63,6 +63,42 @@ label.check{display:flex;gap:12px;align-items:flex-start;font-weight:700}
 label.check input{width:24px;height:24px;margin-top:2px}
 details summary{cursor:pointer;color:var(--muted);font-weight:600}
 code{font-size:13px;word-break:break-all;color:var(--muted)}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;margin:0 0 12px;
+border-bottom:1px solid var(--line)}
+section{margin:22px 0}section>h2{display:flex;align-items:baseline;gap:8px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips.scroll::-webkit-scrollbar{display:none}.chips a{white-space:nowrap}
+.searchbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.searchbox input[type=search]{width:100%;font-size:18px;padding:14px 16px;border-radius:12px}
+.filters{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:10px}
+.filters .chips{margin:0}.toggle{display:flex;gap:8px;align-items:center;font-weight:600;font-size:15px}
+.toggle input{width:20px;height:20px}
+.game{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0}
+.game header{display:block;margin:0 0 10px}.game h3{font-size:18px;margin:0 0 2px}
+.outs{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.outs.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:520px){.outs.n3{grid-template-columns:1fr}}
+.out{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+background:var(--soft);color:var(--ink);text-decoration:none;min-width:0}
+a.out:hover{border-color:var(--accent)}.out.off{opacity:.55}
+.oname{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oprice{font-size:22px;font-weight:800}.osub{font-size:13px;color:var(--muted);min-height:18px}
+.edge{display:inline-block;padding:1px 8px;border-radius:999px;font-weight:800;font-size:13px}
+.edge.pos{background:var(--accent);color:var(--accent-ink)}.edge.lean{background:var(--accent-soft);color:var(--ink)}
+.edge.neg{background:var(--soft);color:var(--muted)}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:800;font-size:13px;margin-right:8px}
+.badge.pos{background:var(--accent);color:var(--accent-ink)}.badge.lean{background:var(--accent-soft);color:var(--ink)}
+.badge.neg{background:var(--soft);color:var(--muted)}
+.thin{background:var(--warn-soft);border-radius:10px;padding:8px 12px;font-size:14px;margin:0 0 10px}
+.pick h2{font-size:22px;margin:8px 0 6px}.bigline{margin:0 0 12px}.bigline .edge{font-size:15px;padding:3px 10px}
+.cautions{margin:12px 0 0;padding:10px 14px 10px 30px;background:var(--warn-soft);border-radius:10px;font-size:14px}
+.actions{margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.status{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin:6px 0 0}
+.empty{text-align:center;padding:26px 16px}
+@media (max-width:520px){header.top{gap:2px;flex-wrap:nowrap}header .brand{font-size:16px}
+header a.tab{padding:7px 9px;font-size:15px}header a.logout{font-size:13px;padding:6px 4px}
+h1{font-size:24px}}
+@media (max-width:360px){header .brand{display:none}}
 """
 
 TABS = (("picks", "/", "Picks"), ("find", "/find", "All bets"), ("home", "/account", "My account"))
@@ -86,9 +122,9 @@ def page(settings: Settings, title: str, body: str, tab: str | None = None, nav:
     if nav:
         tabs = "".join(f'<a class="tab{" on" if key == tab else ""}" href="{href}">{label}</a>'
                        for key, href, label in TABS)
-        header = f'<header><span class="brand">Kalshi bot</span>{tabs}<a class="out" href="/logout">Log out</a></header>'
+        header = f'<header class="top"><span class="brand">Kalshi bot</span>{tabs}<a class="logout" href="/logout">Log out</a></header>'
     else:
-        header = '<header><span class="brand">Kalshi bot</span></header>'
+        header = '<header class="top"><span class="brand">Kalshi bot</span></header>'
     doc = (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
            f'<meta name="viewport" content="width=device-width,initial-scale=1">'
            f'<meta name="robots" content="noindex"><title>{esc(title)} · Kalshi bot</title>'

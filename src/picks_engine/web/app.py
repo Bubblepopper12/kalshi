@@ -31,7 +31,7 @@ import os
 import re
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urlencode
 
@@ -40,25 +40,23 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 
 from ..config import Settings
-from ..kalshi.classify import classify
 from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
 from ..kalshi.leagues import LEAGUES
-from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient, OddsAPIError
-from ..live.picks import build_picks, size
+from ..live.odds_api import OddsAPIError
+from ..live.picks import size
 from ..pricing.fees import kalshi_fee
 from ..trading.client import KalshiAPIError, KalshiTradingClient, TradingNotConfigured
 from ..trading.limits import max_cost, static_checks
 from .account import committed_today, holdings, lookup_names, name_market
-from .describe import KIND_LABELS, bet_sentence, cents, day_label, group_games, is_partial_game, money, when
+from .data import Sources, clear_caches
+from .describe import KIND_LABELS, bet_sentence, cents, money, when
 from .security import (COOKIE, MIN_PASSWORD_LENGTH, SESSION_HOURS, _password, _totp_secret, sign,  # noqa: F401
                        totp_code, totp_ok, verify)
 from .ui import esc, page, steps
+from .views import SEARCH_JS, game_card, league_chips, pick_card, search_bar
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
-MAX_GAMES = 40
-PICKS_TTL = 600  # seconds a league's picks are reused (sportsbook requests are limited)
-PICKS_MIN_REFRESH = 120  # "Refresh" can't fetch again sooner than this
-_PICKS_CACHE: dict[str, tuple[float, object, int | None]] = {}
+MAX_GAMES = 300
 TRADING_ERRORS = (KalshiAPIError, TradingNotConfigured, ValueError, PermissionError, httpx.HTTPError)
 
 ORDER_STATUS = {
@@ -75,7 +73,7 @@ def create_app(trading_transport: httpx.BaseTransport | None = None,
                clock=None) -> FastAPI:
     """clock: optional function returning the current UTC datetime (tests pin it)."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-    _PICKS_CACHE.clear()
+    clear_caches()
 
     def settings() -> Settings:
         return Settings.from_env()
@@ -255,50 +253,31 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
 
     # ------------------------------------------------------------ picks
 
-    def kalshi_game_events(rc: KalshiReadOnlyClient, league: str, kind: str) -> list[dict]:
-        series = [x for x in rc.series(category="Sports")
-                  if LEAGUES[league].matches(x)
-                  and classify(x["ticker"], x.get("title") or "") == kind
-                  and not is_partial_game(x["ticker"], x.get("title") or "")][:6]
-        events: list[dict] = []
-        for sr in series:
-            events.extend(rc.events(sr["ticker"], status="open", with_nested_markets=True))
-        return events
+    def sources(s: Settings) -> Sources:
+        return Sources(s, market_transport=market_transport, odds_transport=odds_transport, clock=clock)
 
-    def load_picks(s: Settings, league: str, refresh: bool):
-        """(PicksResult, odds credits left, fetched_at) for one league, cached for a few minutes."""
-        now = time.time()
-        hit = _PICKS_CACHE.get(league)
-        if hit and (now - hit[0] < PICKS_TTL or (refresh and now - hit[0] < PICKS_MIN_REFRESH)):
-            return hit[1], hit[2], hit[0]
-        lg = LEAGUES[league]
-        with market_client(s) as rc:
-            events = kalshi_game_events(rc, league, "moneyline")
-        if not events:
-            result = build_picks([], [], three_way=lg.three_way)
-            left = hit[2] if hit else None
-        else:
-            with OddsAPIClient(s.odds_api_key or "", s.odds_bookmakers or DEFAULT_BOOKMAKERS,
-                               transport=odds_transport) as oc:
-                odds = oc.moneylines(lg.odds_sport)
-            result = build_picks(events, odds.events, three_way=lg.three_way, min_edge=s.picks_min_edge,
-                                 fee_rate=s.kalshi_fee_rate, now=clock() if clock else None)
-            left = odds.requests_remaining
-        _PICKS_CACHE[league] = (now, result, left)
-        return result, left, now
+    def now_utc() -> datetime:
+        return clock() if clock else datetime.now(timezone.utc)
+
+    def cash_balance(s: Settings) -> Decimal | None:
+        if not s.trading_keys_set:
+            return None
+        try:
+            with trading_client(s) as c:
+                return c.balance_dollars()
+        except TRADING_ERRORS:
+            return None
 
     @app.get("/")
-    def picks_page(request: Request, league: str = "NFL", refresh: str = ""):
+    def picks_page(request: Request, league: str = "NFL", refresh: str = "", q: str = ""):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
         league = league.upper() if league.upper() in LEAGUES else "NFL"
-        chips = "".join(f'<a class="{"on" if code == league else ""}" href="/?league={code}">{esc(lg.name)}</a>'
-                        for code, lg in LEAGUES.items())
-        parts = [f'''<h1>Today's picks</h1>
-<p class="lead">A pick shows up when the sportsbooks think something is more likely than Kalshi's price says.
+        parts = [f'''<h1>Picks</h1>
+<p class="lead">Bets where Kalshi's price is lower than what the sportsbooks think the outcome is worth.
 It's math, not a guarantee, so keep bets small.</p>
-<div class="card"><div class="muted small">League</div><div class="chips">{chips}</div></div>''']
+{league_chips(league, lambda code: "/?league=" + code)}''']
         if not s.odds_api_key:
             parts.append('''<div class="card warn"><h2>One more setup step</h2>
 <p>Picks compare Kalshi with sportsbook prices, which come from The Odds API. Get a free key at
@@ -306,128 +285,98 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
 (Production, Sensitive) and redeploy.</p></div>''')
             return page(s, "Picks", "".join(parts), tab="picks")
         try:
-            result, left, fetched = load_picks(s, league, refresh == "1")
+            result, left, fetched = sources(s).picks(league, refresh == "1")
         except (httpx.HTTPError, OddsAPIError) as exc:
             parts.append(f'<div class="card bad">Couldn\'t load prices right now: {esc(exc)}</div>')
             return page(s, "Picks", "".join(parts), tab="picks")
 
-        cash = None
-        if s.trading_keys_set:
-            try:
-                with trading_client(s) as c:
-                    cash = c.balance_dollars()
-            except TRADING_ERRORS:
-                cash = None
-        for p in result.picks + result.near:
+        cash = cash_balance(s)
+        for p in result.picks:
             size(p, cash, s.max_order_dollars)
-
         age = int((time.time() - fetched) // 60)
-        credits = f" · {left} sportsbook requests left this month" if left is not None else ""
-        parts.append(f'''<p class="muted small">Checked {result.games_checked} games, matched {result.games_matched}
-with the sportsbooks · updated {"just now" if age == 0 else f"{age} min ago"}{credits} ·
-<a href="/?league={league}&refresh=1">Refresh</a></p>''')
+        name = LEAGUES[league].name
+        status = [f"{result.games_matched} of {result.games_checked} {esc(name)} games compared with the sportsbooks",
+                  "updated just now" if age == 0 else f"updated {age} min ago"]
+        if left is not None:
+            status.append(f"{left} sportsbook lookups left this month")
+        status.append(f'<a href="/?league={league}&refresh=1">Refresh</a>')
+        parts.append('<p class="status">' + "".join(f"<span>{x}</span>" for x in status) + "</p>")
 
-        def card(p, strong: bool) -> str:
-            pct = lambda x: f"{x * 100:.0f}%"  # noqa: E731
-            books = ", ".join(p.books[:4]) + (f" +{len(p.books) - 4} more" if len(p.books) > 4 else "")
-            n = max(p.contracts, 1)
-            href = "/bet?" + urlencode({"ticker": p.ticker, "side": "yes", "contracts": n,
-                                        "price": int(p.ask * 100)})
-            if p.contracts > 0:
-                suggest = (f"{p.contracts} contract{'s' if p.contracts != 1 else ''} · costs about {money(p.stake)} · "
-                           f"pays {money(p.contracts)} if right")
-            elif cash is not None and cash < p.cost:
-                suggest = "Add cash on Kalshi to take this one."
-            else:
-                suggest = "Too small an edge for your bankroll; 1 contract at most."
-            notes = "".join(f'<p class="warn small">{esc(x)}</p>' for x in p.notes)
-            when_txt = f"starts {esc(when(p.starts))}" if p.starts else esc(day_label(p.day))
-            return f'''<div class="card"><div class="muted small">{esc(p.game)} · {when_txt}</div>
-<h2 style="margin:6px 0">{esc(p.outcome)}</h2>
-<span class="pill" style="{"background:var(--accent);color:var(--accent-ink)" if strong else ""}">
-{p.edge * 100:+.1f} points cheaper on Kalshi</span>
-<dl class="sum" style="margin-top:12px">
-<dt>Sportsbooks say</dt><dd>{pct(p.fair)} chance <span class="muted small" style="font-weight:400">
-({len(p.books)} books: {esc(books)}; range {pct(p.book_low)}–{pct(p.book_high)})</span></dd>
-<dt>Kalshi price</dt><dd>{cents(p.ask)} + {p.fee * 100:.1f}¢ fee = {p.cost * 100:.1f}¢ ({pct(p.cost)})</dd>
-<dt>Suggested</dt><dd>{esc(suggest)}</dd></dl>{notes}
-<p style="margin-top:12px"><a class="btn" href="{esc(href)}">Bet this →</a>
-<span class="muted small">You'll review it before anything is sent.</span></p></div>'''
-
+        parts.append(f'<section><h2>Best picks <span class="muted small">{len(result.picks)}</span></h2>')
         if result.picks:
-            parts.extend(card(p, True) for p in result.picks)
+            parts.extend(pick_card(p, cash) for p in result.picks)
         else:
-            parts.append(f'''<div class="card"><h2>No strong picks right now</h2>
-<p class="muted">Nothing in {esc(LEAGUES[league].name)} is at least {s.picks_min_edge * 100:.0f} points cheaper on
-Kalshi than at the sportsbooks. That's normal; check back closer to game time or try another league.</p></div>''')
-        if result.near:
-            parts.append('<details class="card"><summary>Close calls (cheaper, but by less than '
-                         f'{s.picks_min_edge * 100:.0f} points)</summary>'
-                         + "".join(card(p, False) for p in result.near[:10]) + "</details>")
+            parts.append(f'''<div class="card empty"><h3>No strong picks in {esc(name)} right now</h3>
+<p class="muted">Nothing is at least {s.picks_min_edge * 100:.0f} points cheaper on Kalshi than at the sportsbooks.
+That's normal: Kalshi's prices usually stay close. Check closer to game time, try another league, or look through
+every game below.</p></div>''')
+        parts.append("</section>")
+
+        board = sorted(result.board, key=lambda g: (-(g.best_edge if g.best_edge is not None else -9),
+                                                   g.starts or datetime.max.replace(tzinfo=timezone.utc)))
+        parts.append('<section><h2>Every game <span class="muted small">Kalshi price vs. sportsbooks</span></h2>'
+                     '<p class="muted small">Each box: the team, what it costs on Kalshi, the sportsbooks\' chance, '
+                     'and the difference in points (green = cheaper on Kalshi).</p>')
+        parts.append(search_bar(q, "Search: team, nickname or day", picks_filter=True))
+        if board:
+            parts.extend(game_card(g, s.picks_min_edge, now_utc()) for g in board)
+            parts.append('<p class="muted empty" id="none" style="display:none">No games match your search.</p>')
+        else:
+            parts.append(f'<div class="card empty"><p class="muted">No upcoming {esc(name)} games on Kalshi right now.</p></div>')
         if result.unmatched:
-            parts.append('<p class="muted small">Couldn&#x27;t match with the sportsbooks: '
+            parts.append('<p class="muted small">Not compared (the sportsbooks don\'t list these the same way): '
                          + esc(", ".join(result.unmatched[:8])) + ("…" if len(result.unmatched) > 8 else "") + "</p>")
-        parts.append('''<details class="card"><summary>What goes into a pick</summary>
-<p style="margin-top:10px"><b>Now:</b> the sportsbooks' prices for the same game, with their built-in margin
-removed, compared with Kalshi's price plus Kalshi's fee.</p>
-<p><b>Coming next:</b> tipster track records (only people whose picks we've graded beat the market) and the bot's own
-model. Picks will say which of the three agree.</p>
-<p class="muted small">Suggested size: a quarter of the "Kelly" amount for your cash, never above your per-bet limit.</p></details>''')
+        parts.append("</section>")
+        parts.append('''<details class="card"><summary>How picks work</summary>
+<p style="margin-top:10px">1. The bot reads the odds from several sportsbooks (Pinnacle, DraftKings, FanDuel and others)
+and removes their built-in profit margin, which gives a fair chance for each outcome.</p>
+<p>2. It compares that chance with Kalshi's price plus Kalshi's fee. If Kalshi is at least
+3 points cheaper, it's a pick.</p>
+<p>3. <b>Strong</b> means at least 5 points, 3+ sportsbooks, Pinnacle agrees, and Kalshi prices aren't stretched.
+<b>Good</b> means it clears 3 points but misses one of those.</p>
+<p>4. Suggested size is a quarter of the "Kelly" amount for your cash, never above your per-bet limit.</p>
+<p class="muted small">Coming later: tipster track records and the bot's own model.</p></details>''')
+        parts.append(SEARCH_JS)
         return page(s, "Picks", "".join(parts), tab="picks")
 
-    # ------------------------------------------------------------ find a bet
+    # ------------------------------------------------------------ all bets
 
     @app.get("/markets")
-    def markets_alias(league: str = "NFL", kind: str = "moneyline"):
+    def markets_alias(league: str = "ALL", kind: str = "moneyline"):
         return RedirectResponse("/find?" + urlencode({"league": league, "kind": kind}), status_code=303)
 
     @app.get("/find")
-    def find(request: Request, league: str = "NFL", kind: str = "moneyline"):
+    def find(request: Request, league: str = "ALL", kind: str = "moneyline", q: str = ""):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
-        league = league.upper() if league.upper() in LEAGUES else "NFL"
+        league = league.upper() if league.upper() in LEAGUES or league.upper() == "ALL" else "ALL"
         kind = kind if kind in KIND_LABELS else "moneyline"
         games, error = [], ""
         try:
-            with market_client(s) as rc:
-                events = kalshi_game_events(rc, league, kind)
-            games = group_games(events, kind)[:MAX_GAMES]
+            games = sources(s).games(list(LEAGUES) if league == "ALL" else [league], kind)
         except httpx.HTTPError as exc:
-            error = f"Couldn't load bets from Kalshi right now ({exc}). Try again in a minute."
+            error = f"Couldn't load games from Kalshi right now ({exc}). Try again in a minute."
+        games.sort(key=lambda g: (g.day or date.max, g.title))
+        games = games[:MAX_GAMES]
 
         link = lambda **kw: "/find?" + urlencode({"league": league, "kind": kind} | kw)  # noqa: E731
-        league_chips = "".join(f'<a class="{"on" if code == league else ""}" href="{esc(link(league=code))}">'
-                               f'{esc(lg.name)}</a>' for code, lg in LEAGUES.items())
         kind_chips = "".join(f'<a class="{"on" if k == kind else ""}" href="{esc(link(kind=k))}">{label}</a>'
                              for k, (label, _) in KIND_LABELS.items())
-        parts = [f'''<h1>All bets</h1><p class="lead">Everything Kalshi offers, not recommendations (those are on Picks). Pick a game, then the outcome you think will happen.
-Each contract pays <b>$1.00</b> if you're right. The price is roughly the chance the market gives it.</p>
-<div class="card"><div class="muted small">League</div><div class="chips">{league_chips}</div>
-<div class="muted small" style="margin-top:10px">Type of bet</div><div class="chips">{kind_chips}</div>
-<p class="muted small" style="margin-top:8px">{esc(KIND_LABELS[kind][1])} Full-game bets only.</p></div>''']
+        parts = [f'''<h1>All bets</h1>
+<p class="lead">Every game Kalshi offers. These are not recommendations (those are on Picks). Each box shows what
+it costs; it pays $1.00 if you're right.</p>
+{search_bar(q, "Search: eagles, lakers, sunday…")}
+{league_chips(league, lambda code: link(league=code), include_all=True)}
+<div class="chips">{kind_chips}</div><p class="muted small">{esc(KIND_LABELS[kind][1])} Full-game bets only.</p>''']
         if error:
             parts.append(f'<div class="card bad">{esc(error)}</div>')
         elif not games:
-            parts.append(f'<div class="card"><p class="muted">No open {esc(KIND_LABELS[kind][0].lower())} bets for '
-                         f'{esc(LEAGUES[league].name)} right now.</p></div>')
-        for g in games:
-            rows = []
-            for ch in g.choices:
-                if ch.yes_ask is None or not 0 < ch.yes_ask < 1:
-                    action = '<span class="muted small">Not available</span>'
-                else:
-                    href = "/bet?" + urlencode({"ticker": ch.ticker, "side": "yes"})
-                    action = f'<a class="btn sm" href="{esc(href)}">Bet · {cents(ch.yes_ask)}</a>'
-                against = ""
-                if kind != "moneyline" and ch.no_ask is not None and 0 < ch.no_ask < 1:
-                    href = "/bet?" + urlencode({"ticker": ch.ticker, "side": "no"})
-                    against = f'<a class="btn ghost sm" href="{esc(href)}">Against · {cents(ch.no_ask)}</a>'
-                rows.append(f'<div class="row"><div class="what"><b>{esc(ch.statement)}</b>'
-                            f'<span class="muted small">costs {cents(ch.yes_ask)} · pays $1.00 if right</span></div>'
-                            f'{against}{action}</div>')
-            parts.append(f'<div class="card"><h2>{esc(g.title)}</h2>'
-                         f'<p class="muted small">{esc(day_label(g.day))}</p>{"".join(rows)}</div>')
+            parts.append('<div class="card empty"><p class="muted">No open bets of this kind right now.</p></div>')
+        else:
+            parts.extend(game_card(g, s.picks_min_edge, now_utc()) for g in games)
+            parts.append('<p class="muted empty" id="none" style="display:none">No games match your search.</p>')
+        parts.append(SEARCH_JS)
         return page(s, "All bets", "".join(parts), tab="find")
 
     # ------------------------------------------------------------ bet: choose → review → send

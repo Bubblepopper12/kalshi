@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-DEFAULT_KALSHI_API_BASE = "https://external-api.kalshi.com/trade-api/v2"
+# Kalshi's documented public host; it serves every market, not just elections.
+DEFAULT_KALSHI_API_BASE = "https://api.elections.kalshi.com/trade-api/v2"
 
 # Trading hosts. Demo is Kalshi's practice exchange (play money, separate account and keys).
 KALSHI_TRADING_HOSTS = {

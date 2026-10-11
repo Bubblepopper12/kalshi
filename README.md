@@ -184,11 +184,10 @@ on every contract.
 
 ## Before the first live run
 
-- **API host.** `KALSHI_API_BASE` defaults to
-  `https://external-api.kalshi.com/trade-api/v2` (from the concept). If that host
-  doesn't answer, Kalshi's documented public host is
+- **API host.** `KALSHI_API_BASE` defaults to Kalshi's documented public host,
   `https://api.elections.kalshi.com/trade-api/v2` (it serves every market, not
-  just elections). The code was tested against a fake Kalshi API because the build
+  just elections). The concept's `external-api.kalshi.com` can be set there
+  instead if Kalshi points you to it. The code was tested against a fake Kalshi API because the build
   machine couldn't reach Kalshi, so the first `picks discover NFL` is the real
   check. Both legacy cent fields (`yes_ask: 54`) and newer dollar fields
   (`yes_ask_dollars: "0.5400"`) are read.

@@ -50,3 +50,11 @@ def test_groups_are_separate():
     scores = score_tipsters(a + b, now=NOW)
     assert {(s.league, s.pick_type) for s in scores} == {("NFL", "spread"), ("NBA", "prop")}
     assert all(s.trust == 0 for s in scores)  # alone in its group: no z-score
+
+
+def test_identical_clv_values_give_bounded_t():
+    same = [GradedPick(1, "NFL", "spread", NOW - timedelta(days=i), "win", 1.0, 0.9, 0.02) for i in range(50)]
+    s = score_tipsters(same, now=NOW)[0]
+    assert s.clv_t == 1000.0
+    neg = [GradedPick(2, "NFL", "spread", NOW, "loss", 1.0, -1.0, -0.02) for _ in range(400)]
+    assert score_tipsters(neg, now=NOW)[0].clv_t == -1000.0

@@ -76,7 +76,7 @@ def login(web):
 
 def review(web, **form):
     data = {"ticker": TICKER, "side": "yes", "price": "54", "contracts": "2"} | form
-    return web.post("/ticket", data=data)
+    return web.post("/bet", data=data)
 
 
 def token_from(html: str) -> str:
@@ -86,17 +86,17 @@ def token_from(html: str) -> str:
 def test_locked_without_password(monkeypatch, exchange, fake):
     monkeypatch.setenv("APP_PASSWORD", "short")
     web = TestClient(create_app(), base_url="https://testserver")
-    for path in ("/", "/login", "/markets"):
-        r = web.get(path)
-        assert "Setup needed" in r.text
+    for path in ("/", "/login", "/find", "/bet"):
+        assert "Setup needed" in web.get(path).text
     assert web.post("/login", data={"password": "short"}, follow_redirects=False).headers["location"] == "/login"
 
 
 def test_login_required(web):
-    for path in ("/", "/markets", "/ticket"):
+    for path in ("/", "/find", "/bet"):
         r = web.get(path, follow_redirects=False)
         assert r.status_code == 303 and r.headers["location"] == "/login"
     assert web.post("/send", data={"token": "x", "approve": "yes"}, follow_redirects=False).status_code == 303
+    assert web.post("/bet", data={"ticker": TICKER}, follow_redirects=False).status_code == 303
     r = web.post("/login", data={"password": "wrong password!!"}, follow_redirects=False)
     assert r.headers["location"] == "/login?error=1"
     r = web.post("/login", data={"password": PASSWORD}, follow_redirects=False)  # no code
@@ -109,31 +109,54 @@ def test_login_required(web):
     assert "secure" in cookie and "httponly" in cookie and "samesite=strict" in cookie
 
 
-def test_account_page(web, exchange):
+def test_home_uses_plain_names(web, exchange):
     login(web)
     r = web.get("/")
-    assert "LIVE" in r.text and "$100.00" in r.text and TICKER in r.text
-    assert r.headers["cache-control"] == "no-store"
+    assert "LIVE" in r.text and "$100.00" in r.text and r.headers["cache-control"] == "no-store"
+    assert "Your bets" in r.text and "PHI wins" in r.text  # position named, not shown as a ticker
+    assert "3 contracts · pays $3.00 if right" in r.text
 
 
-def test_markets_page_links_to_tickets(web):
+def test_home_warns_when_no_cash(web, exchange):
     login(web)
-    r = web.get("/markets?league=NFL&kind=moneyline")
-    assert "KXNFLGAME-26OCT18KCBUF-KC" in r.text
-    assert "/ticket?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;price=55" in r.text
+    exchange.balance_cents = 0
+    assert "You have no cash to bet with" in web.get("/").text
+
+
+def test_find_groups_games_and_hides_partial_markets(web, fake):
+    fake.series.append({"ticker": "KXNFL2H", "title": "Pro Football 2nd Half Winner", "category": "Sports"})
+    fake.markets["KXNFL2H"] = [dict(fake.markets["KXNFLGAME"][0], ticker="KXNFL2H-26OCT18DALPHI-PHI",
+                                    event_ticker="KXNFL2H-26OCT18DALPHI")]
+    login(web)
+    r = web.get("/find?league=NFL&kind=moneyline")
+    assert "PHI wins" in r.text and "KC wins" in r.text and "Sun, Oct 18" in r.text
+    assert "pays $1.00 if right" in r.text
+    assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes" in r.text
+    assert "KXNFL2H" not in r.text  # half-game market hidden
+    assert web.get("/markets", follow_redirects=False).headers["location"].startswith("/find")
+
+
+def test_choose_page_explains_the_bet(web):
+    login(web)
+    r = web.get(f"/bet?ticker={TICKER}&side=yes")
+    assert "You're betting" in r.text and "PHI wins" in r.text and "55¢" in r.text
+    r = web.get(f"/bet?ticker={TICKER}&side=no")
+    assert "NOT: PHI wins" in r.text
 
 
 def test_full_approval_flow(web, exchange):
     login(web)
     r = review(web)
-    assert "Review ticket" in r.text and "real money" in r.text and exchange.posts == []
+    assert "Review your bet" in r.text and "real money" in r.text and exchange.posts == []
+    assert "You pay at most</dt><dd>$1.12" in r.text  # 2 x 54c + fee 0.07 x 2 x .54 x .46 = 3.5c -> 4c
+    assert "You get $2.00 back (profit $0.88)" in r.text and "You lose $1.12" in r.text
     token = token_from(r.text)
 
     r = web.post("/send", data={"token": token})
-    assert "tick the approval box" in r.text and exchange.posts == []
+    assert "I approve this bet" in r.text and "Nothing was bought" in r.text and exchange.posts == []
 
     r = web.post("/send", data={"token": token, "approve": "yes"})
-    assert "Sent to Kalshi" in r.text
+    assert "Waiting for a seller" in r.text and "PHI wins" in r.text
     assert exchange.posts[0]["count"] == 2 and exchange.posts[0]["yes_price"] == 54
     assert exchange.posts[0]["ticker"] == TICKER
 
@@ -170,7 +193,7 @@ def test_limits_on_review_and_send(web, exchange, monkeypatch):
     monkeypatch.setenv("PICKS_MAX_DAILY_DOLLARS", "1000")
     monkeypatch.setenv("PICKS_MAX_OPEN_ORDERS", "1")
     r = web.post("/send", data={"token": token_from(review(web).text), "approve": "yes"})
-    assert "open orders" in r.text
+    assert "waiting orders" in r.text
     assert len(exchange.posts) == 1
 
 
@@ -178,24 +201,26 @@ def test_halt_balance_and_env_switch(web, exchange, monkeypatch):
     login(web)
     token = token_from(review(web).text)
     monkeypatch.setenv("TRADING_HALTED", "1")
-    assert "halted" in web.post("/send", data={"token": token, "approve": "yes"}).text
+    assert "turned off" in web.post("/send", data={"token": token, "approve": "yes"}).text
     monkeypatch.delenv("TRADING_HALTED")
     exchange.balance_cents = 50
-    assert "Your balance is" in web.post("/send", data={"token": token, "approve": "yes"}).text
+    assert "Add money on kalshi.com" in review(web).text  # warned on the review page already
+    assert "Your cash is $0.50" in web.post("/send", data={"token": token, "approve": "yes"}).text
     exchange.balance_cents = 10_000
     monkeypatch.setenv("KALSHI_ENV", "demo")
     monkeypatch.setenv("KALSHI_TRADING_BASE", "https://kalshi.test/trade-api/v2")
-    assert "made for LIVE" in web.post("/send", data={"token": token, "approve": "yes"}).text
+    assert "reviewed for LIVE" in web.post("/send", data={"token": token, "approve": "yes"}).text
     assert exchange.posts == []
 
 
 def test_cancel(web, exchange):
     login(web)
     web.post("/send", data={"token": token_from(review(web).text), "approve": "yes"})
-    assert "Cancel" in web.get("/").text
+    home = web.get("/").text
+    assert "Waiting orders" in home and "Cancel" in home
     r = web.post("/cancel", data={"order_id": "ord-1"}, follow_redirects=False)
     assert r.status_code == 303 and exchange.orders["ord-1"]["status"] == "canceled"
-    assert "valid order id" in web.post("/cancel", data={"order_id": "../x"}).text
+    assert "valid order" in web.post("/cancel", data={"order_id": "../x"}).text
 
 
 def test_totp_matches_rfc6238():

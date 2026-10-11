@@ -86,6 +86,9 @@ class TipsterScore:
         }
 
 
+T_CAP = 1000.0  # t-stats beyond this carry no extra information (and must fit the database column)
+
+
 def _weighted_stats(values: list[float], weights: list[float]) -> tuple[float, float, float]:
     """Weighted mean, t-stat of the mean, and effective sample size."""
     sw = sum(weights)
@@ -95,8 +98,11 @@ def _weighted_stats(values: list[float], weights: list[float]) -> tuple[float, f
     if n_eff <= 1:
         return mean, 0.0, n_eff
     var = sum(w * (v - mean) ** 2 for v, w in zip(values, weights)) / sw * n_eff / (n_eff - 1)
-    se = math.sqrt(var / n_eff) if var > 0 else 0.0
-    t = mean / se if se > 0 else 0.0
+    se = math.sqrt(var / n_eff) if var > 1e-18 else 0.0
+    if se == 0.0:  # every value the same: the sign is certain, the size isn't meaningful
+        t = 0.0 if abs(mean) < 1e-12 else math.copysign(T_CAP, mean)
+    else:
+        t = max(-T_CAP, min(T_CAP, mean / se))
     return mean, t, n_eff
 
 

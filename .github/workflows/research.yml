@@ -40,8 +40,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: research/data
-          key: research-data-${{ github.run_id }}
-          restore-keys: research-data-
+          key: research-data-v2-${{ github.run_id }}
+          restore-keys: research-data-v2-  # bump v2 to start over (e.g. after a price-format fix)
       - name: Run every test for every league
         env:
           LEAGUES: ${{ github.event.inputs.leagues }}

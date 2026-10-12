@@ -1,0 +1,181 @@
+{
+  "generated": "2026-10-12T22:50:18+00:00",
+  "since": "2025-08-01",
+  "leagues": [
+    {
+      "code": "NFL",
+      "name": "NFL",
+      "markets": 904,
+      "games": 452,
+      "source": "nflverse (closing moneylines)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were less accurate than the sportsbooks' closing lines (718 prices compared), so Kalshi sometimes lags the books.",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 3 bets, 2 won, +36.0% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 45 bets, 7% won, -8.2% per bet.",
+        "Big favorites (70\u00a2 and up): 163 bets, 76% won, -3.0% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "CFB",
+      "name": "College football / CFP",
+      "markets": 3368,
+      "games": 1722,
+      "source": "",
+      "tag": "kalshi-only",
+      "verdict": "Kalshi-only test (no free sportsbook history for this league).",
+      "points": [
+        "Cheap long shots (under 20\u00a2): 791 bets, 10% won, +1.9% per bet.",
+        "Big favorites (70\u00a2 and up): 1039 bets, 86% won, -0.6% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "NBA",
+      "name": "NBA",
+      "markets": 2792,
+      "games": 1396,
+      "source": "",
+      "tag": "kalshi-only",
+      "verdict": "Kalshi-only test (no free sportsbook history for this league).",
+      "points": [
+        "Cheap long shots (under 20\u00a2): 291 bets, 14% won, +0.3% per bet.",
+        "Big favorites (70\u00a2 and up): 656 bets, 80% won, -1.7% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "EPL",
+      "name": "Premier League",
+      "markets": 1320,
+      "games": 440,
+      "source": "football-data.co.uk (Pinnacle closing odds)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1287 prices compared).",
+        "Kalshi was never 3+ points cheaper than the books before a game.",
+        "Cheap long shots (under 20\u00a2): 188 bets, 14% won, -0.8% per bet.",
+        "Big favorites (70\u00a2 and up): 48 bets, 71% won, -6.3% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "UCL",
+      "name": "Champions League",
+      "markets": 891,
+      "games": 297,
+      "source": "",
+      "tag": "kalshi-only",
+      "verdict": "Kalshi-only test (no free sportsbook history for this league).",
+      "points": [
+        "Cheap long shots (under 20\u00a2): 229 bets, 12% won, -2.2% per bet.",
+        "Big favorites (70\u00a2 and up): 75 bets, 77% won, -3.5% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "MLS",
+      "name": "MLS",
+      "markets": 1791,
+      "games": 597,
+      "source": "football-data.co.uk (Pinnacle closing odds)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1557 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 27 bets, 14 won, +3.9% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 179 bets, 17% won, +0.2% per bet.",
+        "Big favorites (70\u00a2 and up): 40 bets, 68% won, -7.7% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "LALIGA",
+      "name": "La Liga",
+      "markets": 1367,
+      "games": 457,
+      "source": "football-data.co.uk (Pinnacle closing odds)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1328 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 3 bets, 1 won, -2.2% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 213 bets, 12% won, -1.5% per bet.",
+        "Big favorites (70\u00a2 and up): 67 bets, 87% won, +6.9% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "SERIEA",
+      "name": "Serie A",
+      "markets": 1320,
+      "games": 440,
+      "source": "football-data.co.uk (Pinnacle closing odds)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1286 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 2 bets, 0 won, -30.4% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 233 bets, 14% won, -1.1% per bet.",
+        "Big favorites (70\u00a2 and up): 65 bets, 77% won, +0.5% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "BUNDESLIGA",
+      "name": "Bundesliga",
+      "markets": 1059,
+      "games": 353,
+      "source": "football-data.co.uk (Pinnacle closing odds)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (960 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 6 bets, 2 won, -5.0% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 159 bets, 11% won, -3.7% per bet.",
+        "Big favorites (70\u00a2 and up): 53 bets, 77% won, -2.5% per bet."
+      ],
+      "error": ""
+    },
+    {
+      "code": "LIGUE1",
+      "name": "Ligue 1",
+      "markets": 1083,
+      "games": 361,
+      "source": "football-data.co.uk (Pinnacle closing odds)",
+      "tag": "few",
+      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "points": [
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (975 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 5 bets, 1 won, -21.0% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 174 bets, 10% won, -4.7% per bet.",
+        "Big favorites (70\u00a2 and up): 51 bets, 73% won, -5.7% per bet."
+      ],
+      "error": ""
+    }
+  ],
+  "pooled": [
+    "## All leagues together",
+    "",
+    "15895 Kalshi markets from 6515 games.",
+    "",
+    "| Price | Markets | Average price | Actually won | Return per bet |",
+    "| --- | --- | --- | --- | --- |",
+    "| 0\u201310\u00a2 | 786 | 5% | 7% | +1.6% |",
+    "| 10\u201320\u00a2 | 1716 | 15% | 15% | -1.5% |",
+    "| 20\u201330\u00a2 | 3849 | 25% | 25% | -1.6% |",
+    "| 30\u201340\u00a2 | 2532 | 34% | 33% | -2.6% |",
+    "| 40\u201350\u00a2 | 1885 | 44% | 46% | -0.3% |",
+    "| 50\u201360\u00a2 | 1528 | 55% | 52% | -4.3% |",
+    "| 60\u201370\u00a2 | 1342 | 64% | 62% | -3.9% |",
+    "| 70\u201380\u00a2 | 1010 | 74% | 73% | -2.2% |",
+    "| 80\u201390\u00a2 | 706 | 84% | 83% | -1.8% |",
+    "| 90\u2013100\u00a2 | 541 | 95% | 96% | +1.0% |",
+    "",
+    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 46 bets, 20 won, +0.2% per bet after fees.",
+    ""
+  ]
+}

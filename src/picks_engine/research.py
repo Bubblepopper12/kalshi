@@ -8,7 +8,8 @@ and write:
   research/reports/summary.md    one page: a verdict per league, plus all leagues pooled
   research/reports/summary.json  the same, for the website's Research tab
 
-Raw price files go to research/data/ (not committed: they're large and re-downloadable).
+Raw price files go to research/data/ (not committed: they're large). Each run adds only the
+games that finished since the last one; GitHub keeps the files between runs in its cache.
 """
 
 from __future__ import annotations
@@ -160,7 +161,7 @@ def closing_lines(code: str, since: datetime, fetch: Callable[[str], str], progr
 
 def run(client: KalshiReadOnlyClient, leagues: list[str], since: datetime, reports: Path = REPORTS,
         data: Path = DATA, fetch: Callable[[str], str] = _fetch, fee_rate: float = 0.07,
-        progress=print, reuse_data: bool = False) -> list[LeagueSummary]:
+        progress=print, reuse_data: bool = False, update: bool = True) -> list[LeagueSummary]:
     reports.mkdir(parents=True, exist_ok=True)
     results: list[LeagueSummary] = []
     done: list[history.Report] = []
@@ -170,7 +171,7 @@ def run(client: KalshiReadOnlyClient, leagues: list[str], since: datetime, repor
         path = data / f"kalshi_{code}_history.csv"
         try:
             if not (reuse_data and path.exists()):
-                history.download(client, code, since, path, progress=progress)
+                history.download(client, code, since, path, progress=progress, update=update)
         except (httpx.HTTPError, SystemExit) as exc:
             msg = str(exc) if isinstance(exc, SystemExit) else f"couldn't reach Kalshi ({exc!r})"
             progress(f"  skipped: {msg}")

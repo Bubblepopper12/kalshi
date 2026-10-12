@@ -186,8 +186,9 @@ kickoff? College football, the NBA and the Champions League get test 1 only (no 
 lines). Output: `research/reports/summary.md` (a plain-English verdict per league, plus all
 leagues pooled) and one full report per league.
 
-**You don't need to run it yourself:** GitHub runs it every Tuesday morning
-(`.github/workflows/research.yml`) and saves the reports, Vercel redeploys, and the website's
+**You don't need to run it yourself:** GitHub runs it every morning
+(`.github/workflows/research.yml`; it keeps the downloaded prices in its cache, so each run only
+fetches games that finished since the last one) and saves the reports, Vercel redeploys, and the website's
 **Research** tab shows them. To run it now: GitHub → kalshi → Actions → Research → Run workflow.
 
 The older single-league commands still work: `picks history download NFL`, `picks history analyze NFL`.

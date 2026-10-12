@@ -299,7 +299,8 @@ def cmd_research(args, settings):
     since = datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc)
     with _client(settings) as client:
         results = research.run(client, leagues, since, fee_rate=settings.kalshi_fee_rate,
-                               progress=lambda m: print(m, flush=True), reuse_data=args.reuse)
+                               progress=lambda m: print(m, flush=True), reuse_data=args.reuse,
+                               update=not args.fresh)
     print("\n" + "\n".join(f"{r.name}: {r.verdict or r.error}" for r in results))
     print(f"\nFull results: {research.REPORTS / 'summary.md'} (also on the website's Research tab once pushed).")
 
@@ -382,7 +383,8 @@ def build_parser() -> argparse.ArgumentParser:
     rp = sub.add_parser("research", help="run every history test for every league and write a plain-English summary")
     rp.add_argument("--leagues", help="comma-separated, e.g. NFL,EPL (default: all)")
     rp.add_argument("--since", default="2025-08-01", help="first day (YYYY-MM-DD)")
-    rp.add_argument("--reuse", action="store_true", help="reuse price files already in research/data")
+    rp.add_argument("--reuse", action="store_true", help="don't download at all; use the price files already saved")
+    rp.add_argument("--fresh", action="store_true", help="re-download everything instead of only new games")
     rp.set_defaults(func=cmd_research)
 
     b = sub.add_parser("board", help="open the Streamlit pick board")

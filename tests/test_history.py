@@ -122,3 +122,22 @@ def test_timing_table(downloaded):
     assert "Does Kalshi lag earlier in the week?" in text
     assert "| 1 h | 2 |" in text  # both markets have a price an hour before kickoff
     assert "| 72 h | 0 |" in text  # the fake history only starts on game day
+
+
+def test_update_only_downloads_new_markets(tmp_path):
+    calls = []
+
+    def counting(request):
+        if request.url.path.endswith("/candlesticks"):
+            calls.append(request.url.path)
+        return handler(request)
+
+    client = KalshiReadOnlyClient("https://kalshi.test/trade-api/v2", requests_per_second=0,
+                                  transport=httpx.MockTransport(counting))
+    out = tmp_path / "hist.csv"
+    since = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    first = history.download(client, "NFL", since, out, progress=lambda *_: None, update=True)
+    n = len(calls)
+    again = history.download(client, "NFL", since, out, progress=lambda *_: None, update=True)
+    assert first == 10 and again == 0 and len(calls) == n  # nothing new: no candle requests
+    assert len(list(csv.DictReader(out.open()))) == 10  # earlier rows kept

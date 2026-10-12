@@ -1,11 +1,12 @@
-# Runs `picks research` on GitHub's servers (they can reach Kalshi and the odds archives),
-# then saves the reports to research/reports. Vercel redeploys on that commit, so the website's
-# Research tab updates by itself. Run it anytime: Actions → Research → Run workflow.
+# Runs `picks research` on GitHub's servers (they can reach Kalshi and the odds archives) every
+# morning, then saves the reports to research/reports. Vercel redeploys on that commit, so the
+# website's Research tab updates by itself. Run it anytime: Actions → Research → Run workflow.
+# Downloaded prices are kept in GitHub's cache, so each run only fetches games finished since the last.
 name: Research
 
 on:
   schedule:
-    - cron: "17 11 * * 2"  # Tuesdays ~6 AM Central, after Monday Night Football
+    - cron: "47 10 * * *"  # every day, ~5:47 AM Central (GitHub may start it a little late)
   workflow_dispatch:
     inputs:
       leagues:
@@ -35,6 +36,12 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: pip install -e . tzdata
+      - name: Bring back the prices downloaded on earlier runs
+        uses: actions/cache@v4
+        with:
+          path: research/data
+          key: research-data-${{ github.run_id }}
+          restore-keys: research-data-
       - name: Run every test for every league
         env:
           LEAGUES: ${{ github.event.inputs.leagues }}

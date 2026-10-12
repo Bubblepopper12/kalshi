@@ -453,7 +453,7 @@ Each league's finished games are tested: were cheap contracts overpriced, and di
 than the sportsbooks make money?</p>''']
         if not data:
             parts.append('''<div class="card empty"><h3>No research yet</h3><p class="muted">It runs on GitHub every
-Tuesday morning, or anytime from GitHub → your <b>kalshi</b> repository → Actions → Research → Run workflow.
+morning, or anytime from GitHub → your <b>kalshi</b> repository → Actions → Research → Run workflow.
 Results show up here a couple of minutes after it finishes.</p></div>''')
             return page(s, "Research", "".join(parts), tab="research")
         parts.append(f'<p class="status"><span>Updated {esc(when(data.get("generated")))}</span>'

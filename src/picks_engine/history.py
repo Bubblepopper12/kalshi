@@ -80,8 +80,12 @@ def _close(candle: dict, name: str) -> Decimal | None:
 
 
 def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Path,
-             period_minutes: int = 60, progress=print) -> int:
-    """Write hourly price history of every settled winner market since `since`. Returns rows written."""
+             period_minutes: int = 60, progress=print, update: bool = False) -> int:
+    """Write hourly price history of every settled winner market since `since`. Returns rows written.
+
+    update=True keeps the markets already in `out` and only downloads the ones it doesn't have,
+    so a daily run takes minutes instead of re-fetching the whole season.
+    """
     lg = LEAGUES[league]
     progress(f"Asking Kalshi for {lg.name} game markets...")
     series = game_series(lg, client.series(category="Sports"), "moneyline")
@@ -90,9 +94,18 @@ def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Pa
     progress(f"Found {', '.join(s['ticker'] for s in series)}. Listing finished games since {since:%b %-d}...")
     rows = 0
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", newline="") as fh:
+    have: set[str] = set()
+    if update and out.exists():
+        with out.open() as fh:
+            reader = csv.DictReader(fh)
+            if reader.fieldnames == COLUMNS:
+                have = {r["ticker"] for r in reader}
+    if have:
+        progress(f"Already saved: {len(have)} markets. Downloading only new ones.")
+    with out.open("a" if have else "w", newline="") as fh:
         w = csv.DictWriter(fh, COLUMNS)
-        w.writeheader()
+        if not have:
+            w.writeheader()
         for sr in series:
             wanted = lambda m: ((_ts(m.get("close_time")) or 0) >= since.timestamp()  # noqa: E731
                                 and m.get("result") in ("yes", "no"))
@@ -114,7 +127,8 @@ def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Pa
             except httpx.HTTPStatusError:
                 pass
             markets += old
-            progress(f"{sr['ticker']}: {len(markets)} finished markets since {since:%b %-d}"
+            markets = [m for m in markets if m["ticker"] not in have]
+            progress(f"{sr['ticker']}: {len(markets)} {'new ' if have else ''}finished markets since {since:%b %-d}"
                      + (f" ({len(old)} from Kalshi's archive)" if old else ""))
             for i, m in enumerate(markets, 1):
                 start = _ts(m.get("open_time")) or int((since - timedelta(days=7)).timestamp())

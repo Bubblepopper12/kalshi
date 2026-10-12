@@ -139,3 +139,13 @@ def test_each_league_is_saved_as_it_finishes_and_merged(tmp_path):
                  progress=lambda *_: None, on_league=lambda c: published.append((c, saved_codes())))
     assert published == [("NBA", ["NBA"]), ("EPL", ["NBA", "EPL"])]  # the NBA result is kept
     assert "Premier League" in (reports / "summary.md").read_text()
+
+
+def test_judge_when_kalshi_tracks_the_books():
+    from picks_engine import history
+
+    rep = history.Report(markets=900, buckets=[history.Bucket(lo, lo + 10) for lo in range(0, 100, 10)], games=300)
+    rep.comparison = history.Comparison(900, 0.60, 0.60, [history.Rule("any", 60, 30, -1),
+                                                          history.Rule("3+", 3, 2, 1.0), history.Rule("5+", 1, 1, 0.5)])
+    s = research.judge("EPL", rep)
+    assert s.tag == "none" and "only 3 times in 900 prices" in s.verdict

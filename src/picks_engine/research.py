@@ -30,6 +30,7 @@ REPORTS = Path("research/reports")
 DATA = Path("research/data")
 MIN_BETS = 30  # fewer bets than this: too few to say anything
 SOLID_BETS = 200  # this many before calling anything an edge
+PRICED_LIKE_BOOKS = 300  # this many prices compared with almost no gaps = Kalshi tracks the books
 TOO_GOOD = 0.15  # +15% per bet against closing lines is not a realistic edge: flag it as a likely data problem
 
 
@@ -84,6 +85,10 @@ def judge(code: str, report: history.Report) -> LeagueSummary:
                            "problem rather than real money. Not trusted until it's explained.")
         elif r3.bets >= SOLID_BETS and r3.per_bet > 0.02:
             out.tag, out.verdict = "edge", "Edge found: buying when Kalshi is cheaper than the books made money."
+        elif r3.bets < MIN_BETS and c.matched >= PRICED_LIKE_BOOKS:
+            out.tag = "none"
+            out.verdict = (f"No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper "
+                           f"only {r3.bets} time{'s' if r3.bets != 1 else ''} in {c.matched:,} prices).")
         elif r3.bets < MIN_BETS:
             out.tag, out.verdict = "few", "Too few cheap Kalshi prices to tell yet."
         elif r3.per_bet > 0:

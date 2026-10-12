@@ -19,6 +19,7 @@ from test_web import env, exchange, web  # noqa: F401  (pytest fixtures)
     ("what's my balance", "/account"),
     ("does the longshot research show anything", "/research"),
     ("serie a", "/?league=SERIEA"),
+    ("grade my bets", "/grades"),
     ("", "/"),
 ])
 def test_route_plain_words(words, url):

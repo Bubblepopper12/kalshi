@@ -13,7 +13,7 @@ from ..kalshi.classify import classify
 from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
 from ..trading.client import KalshiTradingClient
 from ..trading.limits import max_cost
-from ..live.board import outcome_text
+from ..live.board import combo_legs, outcome_text
 
 MAX_NAME_LOOKUPS = 25
 
@@ -59,10 +59,14 @@ class MarketName:
 
 def name_market(m: dict) -> MarketName:
     kind = classify(m.get("event_ticker", "").split("-")[0], m.get("title") or "")
+    statement = outcome_text(m, kind)
+    question = (m.get("title") or "").strip()
+    if combo_legs(m):  # the legs are already the statement; don't repeat Kalshi's run-on title
+        question = "Every leg has to hit for the combo to pay."
     return MarketName(
         ticker=m.get("ticker", ""),
-        statement=outcome_text(m, kind),
-        question=(m.get("title") or "").strip(),
+        statement=statement,
+        question=question,
         yes_bid=price_field(m, "yes_bid"), no_bid=price_field(m, "no_bid"),
         yes_ask=price_field(m, "yes_ask"), no_ask=price_field(m, "no_ask"),
     )

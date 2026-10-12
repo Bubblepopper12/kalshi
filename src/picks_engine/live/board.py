@@ -20,6 +20,8 @@ STRETCH_WARN = Decimal("1.10")  # a full set of outcomes costing over $1.10 mean
 
 def outcome_text(m: dict, kind: str | None = None) -> str:
     """What has to happen for YES to win, as a short sentence."""
+    if combo := combo_legs(m):
+        return f"{len(combo)}-leg combo: " + "; ".join(combo)
     sub = (m.get("yes_sub_title") or m.get("subtitle") or "").strip()
     title = (m.get("title") or "").strip().rstrip("?")
     if kind == "moneyline" and sub:
@@ -28,6 +30,21 @@ def outcome_text(m: dict, kind: str | None = None) -> str:
             return "It ends in a draw" if low == "draw" else "It ends in a tie"
         return sub if re.search(r"\bwins?\b", low) else f"{sub} wins"
     return sub or title or m.get("ticker", "")
+
+
+def combo_legs(m: dict) -> list[str]:
+    """Kalshi combos read "yes Texas,yes Ohio St.,no Josh Allen: 30+": one plain line per leg."""
+    text = (m.get("title") or m.get("yes_sub_title") or "").strip()
+    if not ((m.get("event_ticker") or m.get("ticker") or "").upper().startswith("KXMVE") or m.get("mve_selected_legs")):
+        return []
+    legs = []
+    for part in re.split(r",(?=\s*(?:yes|no)\s)", text, flags=re.I):
+        part = part.strip()
+        if mt := re.match(r"(yes|no)\s+(.*)", part, re.I):
+            part = mt.group(2) if mt.group(1).lower() == "yes" else f"NOT {mt.group(2)}"
+        if part:
+            legs.append(part)
+    return legs
 
 
 @dataclass

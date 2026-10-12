@@ -155,6 +155,17 @@ The box at the top of Picks takes plain words: "best NBA bets tonight", "eagles"
   with links. It has no way to place a bet: its links open the normal review page, where you
   approve. Optional `ASK_MODEL` picks the Claude model.
 
+### Grades: every past trade graded by the math
+
+Account → **Grade my past bets** (or ask "grade my bets"). Each fill is graded on what it was
+worth when you made it, not on whether it won: the fair chance of your side at kickoff (Pinnacle's
+closing line for NFL and soccer winner bets, otherwise Kalshi's own mid-price one minute before
+kickoff, from 1-minute price history), minus what you paid including the real fee. A ≥ +3 points,
+B +1 to +3, C −1 to +1, D −3 to −1, F below −3. The summary shows the dollar value of your bets
+when made, the actual result, and the difference (luck) next to its normal size. Kickoff times come
+from ESPN's scoreboard; bets placed during a game aren't graded; combos use their first leg's
+kickoff; season-long bets are graded by how far the price has moved since you bought.
+
 ### Longshots and patient orders
 
 - **Longshot guard.** Across 300,000+ Kalshi contracts, cheap contracts won less often than their

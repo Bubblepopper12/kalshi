@@ -105,7 +105,9 @@ th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white
 th{color:var(--muted);font-weight:600;font-size:13px}
 .report h2{font-size:21px;margin:18px 0 8px}.report h3{font-size:17px;margin:16px 0 6px}
 .verdict{font-weight:700;margin:6px 0 8px}.points{margin:0;padding-left:20px}.points li{margin:4px 0}
-.badge.warn{background:var(--warn-soft);color:var(--ink)}.badge.bad{background:var(--danger-soft);color:var(--ink)}
+.badge.warn{background:var(--warn-soft);color:var(--ink)}
+.big-letter{font-size:20px;padding:6px 12px;min-width:44px;text-align:center}
+.row.grade{align-items:flex-start}.row.grade .what div{margin-top:3px}.badge.bad{background:var(--danger-soft);color:var(--ink)}
 @media (max-width:520px){header.top{gap:2px;flex-wrap:nowrap}header .brand{font-size:16px}
 header a.tab{padding:7px 8px;font-size:14px}header a.logout{font-size:13px;padding:6px 4px}
 h1{font-size:24px}}

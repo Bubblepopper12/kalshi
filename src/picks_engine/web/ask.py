@@ -59,6 +59,8 @@ def route(question: str) -> str:
         return "/"
     found = leagues_in(q)
     league = found[0] if len(found) == 1 else "ALL"
+    if re.search(r"\bgrad(e|es|ed|ing)\b|\bhow (am i|have i been) doing\b|\bmy (past|old) bets\b", q):
+        return "/grades"
     if re.search(RESEARCH, q):
         return "/research"
     if re.search(ACCOUNT, q):

@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 _ALLOWED = [
     ("GET", re.compile(r"/portfolio/(balance|positions|orders|fills)")),
+    ("GET", re.compile(r"/historical/fills")),
     ("GET", re.compile(r"/portfolio/orders/[A-Za-z0-9-]+")),
     ("POST", re.compile(r"/portfolio/orders")),
     ("DELETE", re.compile(r"/portfolio/orders/[A-Za-z0-9-]+")),
@@ -107,6 +108,30 @@ class KalshiTradingClient:
     def fills(self, min_ts: int | None = None) -> list[dict]:
         params = {"limit": 200, **({"min_ts": min_ts} if min_ts else {})}
         return self._request("GET", "/portfolio/fills", params=params).get("fills") or []
+
+    def all_fills(self, max_pages: int = 10) -> list[dict]:
+        """Every fill, newest first: recent ones plus older ones from Kalshi's historical archive."""
+        out: list[dict] = []
+        for path in ("/portfolio/fills", "/historical/fills"):
+            cursor = None
+            for _ in range(max_pages):
+                try:
+                    data = self._request("GET", path, params={"limit": 200, **({"cursor": cursor} if cursor else {})})
+                except KalshiAPIError:
+                    if path == "/portfolio/fills":
+                        raise
+                    break  # no archive access: recent fills only
+                out += data.get("fills") or []
+                cursor = data.get("cursor")
+                if not cursor:
+                    break
+        seen, unique = set(), []
+        for f in out:
+            key = f.get("trade_id") or f.get("fill_id") or (f.get("order_id"), f.get("created_time"), f.get("count"))
+            if key not in seen:
+                seen.add(key)
+                unique.append(f)
+        return unique
 
     # ------------------------------------------------------------ writes (only via trading/orders.py)
 

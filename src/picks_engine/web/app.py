@@ -41,9 +41,11 @@ import httpx
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
+from .. import grading
 from ..config import Settings
 from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
 from ..kalshi.leagues import LEAGUES
+from ..live import espn
 from ..live.odds_api import OddsAPIError
 from ..live.picks import STRONG_EDGE, size
 from ..pricing.fees import kalshi_fee
@@ -62,6 +64,7 @@ from .views import SEARCH_JS, ask_box, bet_href, game_card, league_chips, patien
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 300
 MAX_ALL_BOARD = 60
+MAX_GRADED = 60  # most recent markets graded per page load
 RESEARCH_DIR = Path(os.environ.get("RESEARCH_DIR") or Path(__file__).resolve().parents[3] / "research" / "reports")
 TAGS = {"edge": ("pos", "Edge found"), "watch": ("lean", "Worth watching"), "none": ("neg", "No edge"),
         "few": ("warn", "Too few games"), "check": ("warn", "Needs checking"), "kalshi-only": ("neg", "Kalshi-only test"), "error": ("bad", "Not loaded")}
@@ -78,7 +81,9 @@ ORDER_STATUS = {
 def create_app(trading_transport: httpx.BaseTransport | None = None,
                market_transport: httpx.BaseTransport | None = None,
                odds_transport: httpx.BaseTransport | None = None,
-               clock=None, ask_transport: httpx.BaseTransport | None = None) -> FastAPI:
+               clock=None, ask_transport: httpx.BaseTransport | None = None,
+               espn_transport: httpx.BaseTransport | None = None,
+               reference_transport: httpx.BaseTransport | None = None) -> FastAPI:
     """clock: optional function returning the current UTC datetime (tests pin it)."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     clear_caches()
@@ -216,7 +221,8 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
 <div><div class="muted">You can still spend today</div><div class="big">{money(left_today)}</div>
 <div class="muted small">of your {money(s.max_daily_dollars)} daily limit · {money(s.max_order_dollars)} max per bet</div></div>
 </div>{cash_note}{'<p class="bad" style="margin-top:12px">Sending bets is turned off (TRADING_HALTED).</p>' if halted else ''}
-<p style="margin-top:14px"><a class="btn" href="/">See today's picks</a></p></div>''')
+<p style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="/">See today's picks</a>
+<a class="btn ghost" href="/grades">Grade my past bets</a></p></div>''')
 
         rows = []
         for h in held:
@@ -595,6 +601,120 @@ Results show up here a couple of minutes after it finishes.</p></div>''')
         return page(s, "Ask", f'''<h1>Ask</h1>{ask_box("")}<div class="card"><p class="question">{esc(q)}</p>
 <div class="reply">{body}</div><p class="muted small">Answers use live Kalshi and sportsbook prices. Nothing is
 bet until you review and approve it.</p></div>''', tab="picks")
+
+    # ------------------------------------------------------------ grades
+
+    def grade_lookups(s: Settings, rc: KalshiReadOnlyClient) -> grading.Lookups:
+        def fetch(url: str) -> str:
+            with httpx.Client(timeout=30, follow_redirects=True, transport=reference_transport) as http:
+                resp = http.get(url)
+                resp.raise_for_status()
+                return resp.content.decode("utf-8-sig", errors="replace")
+
+        return grading.Lookups(
+            market=rc.market,
+            event=lambda t: rc.get(f"/events/{t}", {"with_nested_markets": "true"}),
+            candles=lambda series, ticker, a, b, mins: rc.candlesticks(series, ticker, a, b, mins),
+            start_time=lambda league, day, teams: espn.find_start(league, day, teams, transport=espn_transport),
+            books_close=_books_close(fetch),
+        )
+
+    books_cache: dict = {}
+
+    def _books_close(fetch):
+        if "fn" not in books_cache or time.time() - books_cache["at"] > 6 * 3600:
+            books_cache.update(fn=grading.books_close_lookup(fetch), at=time.time())
+        return books_cache["fn"]
+
+    def grade_card(g: grading.Grade) -> str:
+        f = g.fill
+        verb = "Bought" if f.action == "buy" else "Sold"
+        side = "" if f.side == "yes" else " (NO side)"
+        cls = {"A": "pos", "B": "lean", "C": "neg", "D": "warn", "F": "bad"}.get(g.letter, "neg")
+        lines = [f"{verb} {f.contracts:,} at {f.price * 100:.1f}¢ + {f.fee * 100:.1f}¢ fee · "
+                 f"{esc(when(f.at))}"]
+        if g.graded:
+            moment = "now" if g.kind == "future" else "at kickoff"
+            source = {"Pinnacle's closing line": "Pinnacle's closing line"}.get(g.fair_source, "Kalshi")
+            lines.append(f"Worth {g.fair * 100:.1f}¢ {moment} (per {esc(source)}) · "
+                         f"<b>{g.edge:+.1f} points</b> per contract · worth {money_signed(g.expected)} when you made it")
+            if g.books_close is not None and g.kalshi_close is not None:
+                lines.append(f'<span class="muted">Kalshi at kickoff: {g.kalshi_close * 100:.1f}¢</span>')
+        if g.actual is not None:
+            lines.append(f"{'Won' if g.result == 'won' else 'Lost'}: {money_signed(g.actual)}")
+        elif g.result == "open":
+            lines.append('<span class="muted">Not settled yet</span>')
+        notes = "".join(f"<li>{esc(n)}</li>" for n in g.notes)
+        lg = LEAGUES[g.league].name + " · " if g.league in LEAGUES else ""
+        return (f'<div class="row grade"><span class="badge {cls} big-letter">{esc(g.letter)}</span>'
+                f'<div class="what"><b>{esc(bet_sentence(g.bet, f.side))}{side}</b>'
+                f'<span class="muted small">{esc(lg)}{esc(g.question)}</span>'
+                + "".join(f'<div class="small">{x}</div>' for x in lines)
+                + (f'<ul class="cautions">{notes}</ul>' if notes else "") + "</div></div>")
+
+    def money_signed(x: float) -> str:
+        return ("+" if x >= 0 else "−") + money(Decimal(str(abs(x))).quantize(Decimal("0.01")))
+
+    @app.get("/grades")
+    def grades_page(request: Request):
+        if (blocked := guard(request)) is not None:
+            return blocked
+        s = settings()
+        if not s.trading_keys_set:
+            return page(s, "Grades", '<h1>Grades</h1><div class="card">Kalshi keys aren\'t set up, so there are no '
+                        'trades to grade.</div>', tab="home")
+        try:
+            with trading_client(s) as c:
+                raw = c.all_fills()
+        except TRADING_ERRORS as exc:
+            return page(s, "Grades", f'<h1>Grades</h1><div class="card bad">Couldn\'t read your trades: {esc(exc)}'
+                        '</div>', tab="home")
+        fills = [f for f in (grading.parse_fill(x, s.kalshi_fee_rate, s.kalshi_maker_fee_rate) for x in raw) if f]
+        recent = list(dict.fromkeys(f.ticker for f in sorted(fills, key=lambda f: f.at, reverse=True)))[:MAX_GRADED]
+        fills = [f for f in fills if f.ticker in recent]
+        with market_client(s) as rc:
+            summary = grading.grade(fills, grade_lookups(s, rc), now=now_utc())
+
+        parts = ['''<h1>Grades</h1><p class="lead">Every bet graded by the math, not by whether it won: did you pay
+less than it was really worth just before the game started? That's what predicts long-run profit.</p>''']
+        if not summary.grades:
+            parts.append('<div class="card empty"><p class="muted">No trades yet.</p></div>')
+            return page(s, "Grades", "".join(parts), tab="home")
+        if summary.graded:
+            luck, sd = summary.luck, summary.luck_sd
+            if not summary.settled:
+                luck_txt = "Nothing has settled yet."
+            elif abs(luck) <= sd:
+                luck_txt = "That's normal luck: results are close to what the math expected."
+            elif luck > 0:
+                luck_txt = "You've won more than the math expected: luck, which tends not to last."
+            else:
+                luck_txt = "You've won less than the math expected: bad luck, which tends to even out."
+            cls = {"A": "pos", "B": "lean", "C": "neg", "D": "warn", "F": "bad"}.get(summary.letter, "neg")
+            parts.append(f'''<div class="card"><div class="grid">
+<div><div class="muted">Overall grade</div><div class="big"><span class="badge {cls} big-letter">{summary.letter}</span>
+{summary.avg_edge:+.1f} pts</div><div class="muted small">average edge per contract, fees included</div></div>
+<div><div class="muted">Beat the closing price</div><div class="big">{summary.beat_close} of {len(summary.graded)}</div>
+<div class="muted small">bets bought below what they were worth at kickoff</div></div>
+<div><div class="muted">Worth when you made them</div><div class="big">{money_signed(summary.expected)}</div>
+<div class="muted small">the math's value of all graded bets</div></div>
+<div><div class="muted">Actual result (settled)</div><div class="big">{money_signed(summary.actual)}</div>
+<div class="muted small">luck {money_signed(luck)} · normal swing ±{money(Decimal(str(sd)).quantize(Decimal("0.01")))}</div></div>
+</div><p class="note" style="margin-top:12px">{esc(luck_txt)}</p></div>''')
+        ungraded = len(summary.grades) - len(summary.graded)
+        parts.append('<div class="card"><h2>Your trades, newest first</h2>'
+                     + (f'<p class="muted small">{ungraded} can\'t be graded (reasons shown on each).</p>' if ungraded else "")
+                     + "".join(grade_card(g) for g in summary.grades) + "</div>")
+        parts.append('''<details class="card"><summary>How grades work</summary>
+<p style="margin-top:10px"><b>Fair price.</b> For NFL and soccer winner bets: Pinnacle's closing line (the sharpest
+sportsbook, margin removed). Otherwise Kalshi's own middle price one minute before kickoff. Kickoff times come from ESPN.</p>
+<p><b>Edge</b> = fair price − what you paid (with the fee). +3 points means you paid 3¢ less than it was worth.
+A ≥ +3 · B +1 to +3 · C −1 to +1 · D −3 to −1 · F below −3.</p>
+<p><b>Luck</b> = actual result − what the math expected. The "normal swing" is one standard deviation: luck inside
+it is ordinary. Over many bets, luck shrinks and your edge is what's left.</p>
+<p>Bets placed during a game aren't graded (prices move with the score). Combos use the first leg's kickoff.
+Season-long bets are graded by how far the price has moved since you bought.</p></details>''')
+        return page(s, "Grades", "".join(parts), tab="home")
 
     # ------------------------------------------------------------ bet: choose → review → send
 

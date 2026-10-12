@@ -105,3 +105,11 @@ def test_report_without_sportsbook_data(downloaded):
     out, _ = downloaded
     report = history.analyze(out, "NFL", None)
     assert report.markets == 2 and report.strategy == []
+
+
+def test_timing_table(downloaded):
+    out, _ = downloaded
+    text = history.analyze(out, "NFL", NFLVERSE).markdown("NFL")
+    assert "Does Kalshi lag earlier in the week?" in text
+    assert "| 1 h | 2 |" in text  # both markets have a price an hour before kickoff
+    assert "| 72 h | 0 |" in text  # the fake history only starts on game day

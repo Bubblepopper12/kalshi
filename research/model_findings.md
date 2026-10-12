@@ -80,3 +80,15 @@ Real, useful findings from checking it:
 - Maker fees are a quarter of taker fees → built as patient orders.
 - Kalshi candlesticks endpoint (`/series/{series}/markets/{ticker}/candlesticks`, 1/60/1440-minute
   periods) and Dune's daily Kalshi trade tables → built as `picks history download/analyze`.
+
+## Kalshi NFL history test (run Oct 12, 2026 on Logan's Mac)
+
+154 finished NFL winner markets since Sep 1, 2026 (109,681 hourly prices), priced 1 hour before kickoff,
+compared with nflverse closing moneylines (all 154 matched).
+
+- Kalshi was as accurate as the sportsbooks' closing lines: log loss 0.645 vs 0.649.
+- Kalshi 3+ points cheaper than the closing line: 0 of 154. Any amount cheaper: 8 bets, 5 won, -13.1%/bet.
+- Longshot bias by price bucket: nothing clear in this small sample (10–30¢ won slightly more than priced;
+  each bucket has only 5–29 markets).
+- Conclusion: no edge on NFL moneylines in the last hour before kickoff. Next test: the same data at
+  72/48/24/6 hours before kickoff (does Kalshi lag earlier in the week?), and thinner leagues.

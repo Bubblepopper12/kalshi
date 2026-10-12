@@ -286,6 +286,43 @@ def strategy_lines(snaps: list[Snapshot], fair: dict[str, tuple[float, str]], fe
     return lines
 
 
+TIMING_HOURS = (72, 48, 24, 6, 1)
+
+
+def timing_lines(path: Path, kickoffs: dict[str, int], fair: dict[str, tuple[float, str]],
+                 fee_rate: float = 0.07) -> list[str]:
+    """How far Kalshi was from where the sportsbooks closed, at several times before kickoff.
+
+    Uses the closing line, which you wouldn't have known yet at those times: it shows whether
+    big gaps existed early (Kalshi lagging), not a ready-made strategy.
+    """
+    lines = ["## 3. Does Kalshi lag earlier in the week?", "",
+             "Kalshi's price at each time vs. where the sportsbooks *closed* (which you couldn't know yet).",
+             "A big early gap that buying would have profited from means Kalshi lags the books.", "",
+             "| Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |",
+             "| --- | --- | --- | --- | --- | --- |"]
+    for hours in TIMING_HOURS:
+        snaps = [s for s in load_snapshots(path, kickoffs, hours_before=hours)
+                 if s.ticker in fair and s.event_ticker in kickoffs and kickoffs[s.event_ticker] - s.ts <= (hours + 6) * 3600]
+        if not snaps:
+            lines.append(f"| {hours} h | 0 | | | | |")
+            continue
+        gaps, n, wins, pnl = [], 0, 0, 0.0
+        for s in snaps:
+            f = fair[s.ticker][0]
+            mid = float(s.ask if s.bid is None else (s.ask + s.bid) / 2)
+            gaps.append(abs(f - mid))
+            cost = float(s.ask) + fee_per_contract(float(s.ask), 10, fee_rate)
+            if f - cost >= 0.03:
+                n += 1
+                wins += s.won
+                pnl += (1 - cost) if s.won else -cost
+        avg_gap = sum(gaps) / len(gaps) * 100
+        lines.append(f"| {hours} h | {len(snaps)} | {avg_gap:.1f} pts | {n} | {wins} | "
+                     f"{(pnl / n * 100 if n else 0):+.1f}% |")
+    return lines + [""]
+
+
 def analyze(path: Path, league: str, nflverse_csv: str | None = None, fee_rate: float = 0.07) -> Report:
     kickoffs, fair = {}, {}
     if league == "NFL" and nflverse_csv:
@@ -294,5 +331,5 @@ def analyze(path: Path, league: str, nflverse_csv: str | None = None, fee_rate: 
     snaps = load_snapshots(path, kickoffs or None)
     report = Report(markets=len(snaps), buckets=longshot_buckets(snaps, fee_rate))
     if league == "NFL" and nflverse_csv:
-        report.strategy = strategy_lines(snaps, fair, fee_rate)
+        report.strategy = strategy_lines(snaps, fair, fee_rate) + [""] + timing_lines(path, kickoffs, fair, fee_rate)
     return report

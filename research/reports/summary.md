@@ -79,7 +79,7 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## Ligue 1
 
-**Too few cheap Kalshi prices to tell yet.**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 5 times in 975 prices).**
 
 - Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (975 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 5 bets, 1 won, -21.0% per bet after fees.
@@ -88,21 +88,21 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## All leagues together
 
-14,814 Kalshi markets from 6,155 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga).
+15,897 Kalshi markets from 6,516 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
-| 0–10¢ | 761 | 5% | 7% | +1.8% |
-| 10–20¢ | 1568 | 15% | 15% | -1.2% |
-| 20–30¢ | 3448 | 25% | 25% | -1.8% |
-| 30–40¢ | 2347 | 34% | 33% | -2.5% |
-| 40–50¢ | 1771 | 44% | 46% | -0.6% |
-| 50–60¢ | 1430 | 55% | 52% | -4.4% |
-| 60–70¢ | 1282 | 64% | 62% | -3.7% |
-| 70–80¢ | 976 | 74% | 74% | -2.1% |
-| 80–90¢ | 690 | 84% | 83% | -1.8% |
-| 90–100¢ | 541 | 95% | 96% | +1.0% |
+| 0–10¢ | 787 | 5% | 7% | +1.6% |
+| 10–20¢ | 1716 | 15% | 15% | -1.5% |
+| 20–30¢ | 3849 | 25% | 25% | -1.6% |
+| 30–40¢ | 2532 | 34% | 33% | -2.6% |
+| 40–50¢ | 1885 | 44% | 46% | -0.3% |
+| 50–60¢ | 1528 | 55% | 52% | -4.3% |
+| 60–70¢ | 1342 | 64% | 62% | -3.9% |
+| 70–80¢ | 1010 | 74% | 73% | -2.2% |
+| 80–90¢ | 706 | 84% | 83% | -1.8% |
+| 90–100¢ | 542 | 95% | 96% | +1.0% |
 
-Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 41 bets, 19 won, +2.8% per bet after fees.
+Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 46 bets, 20 won, +0.2% per bet after fees.
 
 Small samples swing a lot: treat fewer than ~200 bets as a hint, not proof. Past results don't promise future ones.

@@ -41,6 +41,7 @@ except Exception:  # pragma: no cover - no tz database
 NFLVERSE_GAMES = "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv"
 COLUMNS = ["league", "series", "event_ticker", "ticker", "team", "result", "expected_end", "ts",
            "yes_bid", "yes_ask", "last_price", "volume"]
+ARCHIVE_STRAYS = 5000
 PREGAME_HOURS = 4  # without a known kickoff, "pre-game" = last candle 4h before the expected end
 # Kalshi team codes that differ from nflverse's.
 NFL_CODES = {"LAR": "LA", "JAC": "JAX", "WSH": "WAS", "LVR": "LV", "KCC": "KC", "SFO": "SF",
@@ -98,11 +99,20 @@ def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Pa
             markets = [m for m in client.markets(series_ticker=sr["ticker"], status="settled",
                                                  min_close_ts=int(since.timestamp())) if wanted(m)]
             seen = {m["ticker"] for m in markets}
+            old: list[dict] = []
             try:  # older games live under Kalshi's historical endpoints
-                old = [dict(m, _historical=True) for m in client.historical_markets(sr["ticker"])
-                       if wanted(m) and m.get("ticker") not in seen]
+                strays = 0
+                for m in client.historical_markets(sr["ticker"]):
+                    if not (m.get("ticker") or "").startswith(sr["ticker"] + "-"):
+                        strays += 1  # the archive ignored the series filter: don't crawl all of Kalshi
+                        if strays > ARCHIVE_STRAYS:
+                            progress("  (Kalshi's archive isn't filtering by series; using recent games only)")
+                            break
+                        continue
+                    if wanted(m) and m["ticker"] not in seen:
+                        old.append(dict(m, _historical=True))
             except httpx.HTTPStatusError:
-                old = []
+                pass
             markets += old
             progress(f"{sr['ticker']}: {len(markets)} finished markets since {since:%b %-d}"
                      + (f" ({len(old)} from Kalshi's archive)" if old else ""))

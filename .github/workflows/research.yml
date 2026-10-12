@@ -1,0 +1,50 @@
+# Runs `picks research` on GitHub's servers (they can reach Kalshi and the odds archives),
+# then saves the reports to research/reports. Vercel redeploys on that commit, so the website's
+# Research tab updates by itself. Run it anytime: Actions → Research → Run workflow.
+name: Research
+
+on:
+  schedule:
+    - cron: "17 11 * * 2"  # Tuesdays ~6 AM Central, after Monday Night Football
+  workflow_dispatch:
+    inputs:
+      leagues:
+        description: "Leagues (comma-separated, blank = all)"
+        required: false
+        default: ""
+      since:
+        description: "First day of games (YYYY-MM-DD)"
+        required: false
+        default: "2025-08-01"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e . tzdata
+      - name: Run every test for every league
+        env:
+          LEAGUES: ${{ github.event.inputs.leagues }}
+          SINCE: ${{ github.event.inputs.since || '2025-08-01' }}
+        run: picks research --since "$SINCE" ${LEAGUES:+--leagues "$LEAGUES"}
+      - name: Save the reports
+        run: |
+          git add research/reports
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git -c user.name="research-bot" -c user.email="research-bot@users.noreply.github.com" \
+            commit -m "Research results $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do git pull --rebase -q && git push && exit 0; sleep 5; done
+          exit 1

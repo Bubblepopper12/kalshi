@@ -27,12 +27,14 @@ Plain defaults (live, $5 per bet, $20 per day) are in web/web.env.
 from __future__ import annotations
 
 import hmac
+import json
 import os
 import re
 import time
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
@@ -48,15 +50,21 @@ from ..pricing.fees import kalshi_fee
 from ..trading.client import KalshiAPIError, KalshiTradingClient, TradingNotConfigured
 from ..trading.limits import max_cost, static_checks
 from .account import committed_today, holdings, lookup_names, name_market
-from .data import Sources, clear_caches
-from .describe import KIND_LABELS, bet_sentence, cents, money, when
+from .data import QUOTA_FLOOR, Sources, clear_caches
+from .describe import KIND_LABELS, bet_sentence, cents, local_zone, money, when
 from .security import (COOKIE, MIN_PASSWORD_LENGTH, SESSION_HOURS, _password, _totp_secret, sign,  # noqa: F401
                        totp_code, totp_ok, verify)
 from .ui import esc, page, steps
-from .views import SEARCH_JS, game_card, league_chips, patient_price, pick_card, search_bar
+from . import ask as asking
+from . import mdlite
+from .views import SEARCH_JS, ask_box, bet_href, game_card, league_chips, patient_price, pick_card, search_bar
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 300
+MAX_ALL_BOARD = 60
+RESEARCH_DIR = Path(os.environ.get("RESEARCH_DIR") or Path(__file__).resolve().parents[3] / "research" / "reports")
+TAGS = {"edge": ("pos", "Edge found"), "watch": ("lean", "Worth watching"), "none": ("neg", "No edge"),
+        "few": ("warn", "Too few games"), "kalshi-only": ("neg", "Kalshi-only test"), "error": ("bad", "Not loaded")}
 TRADING_ERRORS = (KalshiAPIError, TradingNotConfigured, ValueError, PermissionError, httpx.HTTPError)
 
 ORDER_STATUS = {
@@ -70,7 +78,7 @@ ORDER_STATUS = {
 def create_app(trading_transport: httpx.BaseTransport | None = None,
                market_transport: httpx.BaseTransport | None = None,
                odds_transport: httpx.BaseTransport | None = None,
-               clock=None) -> FastAPI:
+               clock=None, ask_transport: httpx.BaseTransport | None = None) -> FastAPI:
     """clock: optional function returning the current UTC datetime (tests pin it)."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     clear_caches()
@@ -276,23 +284,36 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
             return None
 
     @app.get("/")
-    def picks_page(request: Request, league: str = "NFL", refresh: str = "", q: str = ""):
+    def picks_page(request: Request, league: str = "ALL", refresh: str = "", q: str = ""):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
-        league = league.upper() if league.upper() in LEAGUES else "NFL"
+        league = league.upper() if league.upper() in LEAGUES or league.upper() == "ALL" else "ALL"
         parts = [f'''<h1>Picks</h1>
 <p class="lead">Bets where Kalshi's price is lower than what the sportsbooks think the outcome is worth.
 It's math, not a guarantee, so keep bets small.</p>
-{league_chips(league, lambda code: "/?league=" + code)}''']
+{ask_box("")}
+{league_chips(league, lambda code: "/?league=" + code, include_all=True)}''']
         if not s.odds_api_key:
             parts.append('''<div class="card warn"><h2>One more setup step</h2>
 <p>Picks compare Kalshi with sportsbook prices, which come from The Odds API. Get a free key at
 the-odds-api.com, then add it in Vercel → Settings → Environment Variables as <b>ODDS_API_KEY</b>
 (Production, Sensitive) and redeploy.</p></div>''')
             return page(s, "Picks", "".join(parts), tab="picks")
+        notes: list[str] = []
         try:
-            result, left, fetched = sources(s).picks(league, refresh == "1")
+            if league == "ALL":
+                got = sources(s).picks_all(refresh == "1")
+                result, left, fetched = got.result, got.left, got.oldest
+                if got.quiet:
+                    notes.append(f"No games in the next 3 days: {', '.join(got.quiet)}.")
+                if got.waiting:
+                    notes.append(f"Skipped to save sportsbook lookups (fewer than {QUOTA_FLOOR} left this month): "
+                                 f"{', '.join(got.waiting)}.")
+                if got.failed:
+                    notes.append(f"Couldn't load right now: {', '.join(got.failed)}.")
+            else:
+                result, left, fetched = sources(s).picks(league, refresh == "1")
         except (httpx.HTTPError, OddsAPIError) as exc:
             parts.append(f'<div class="card bad">Couldn\'t load prices right now: {esc(exc)}</div>')
             return page(s, "Picks", "".join(parts), tab="picks")
@@ -300,8 +321,9 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
         cash = cash_balance(s)
         for p in result.picks:
             size(p, cash, s.max_order_dollars)
-        name = LEAGUES[league].name
-        status = [f"{result.games_matched} of {result.games_checked} {esc(name)} games compared with the sportsbooks"]
+        name = "all leagues" if league == "ALL" else LEAGUES[league].name
+        label = "" if league == "ALL" else f"{esc(name)} "
+        status = [f"{result.games_matched} of {result.games_checked} {label}games compared with the sportsbooks"]
         if result.in_progress:
             status.append(f"{result.in_progress} already started")
         if fetched is not None:
@@ -311,6 +333,8 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
             status.append(f"{left} sportsbook lookups left this month")
         status.append(f'<a href="/?league={league}&refresh=1">Refresh</a>')
         parts.append('<p class="status">' + "".join(f"<span>{x}</span>" for x in status) + "</p>")
+        if notes:
+            parts.append('<p class="muted small">' + esc(" ".join(notes)) + "</p>")
 
         parts.append(f'<section><h2>Best picks <span class="muted small">{len(result.picks)}</span></h2>')
         if result.picks:
@@ -324,6 +348,10 @@ every game below.</p></div>''')
 
         board = sorted(result.board, key=lambda g: (-(g.best_edge if g.best_edge is not None else -9),
                                                    g.starts or datetime.max.replace(tzinfo=timezone.utc)))
+        hidden = 0
+        if league == "ALL":  # every league at once: just the games that were compared
+            shown = [g for g in board if g.matched or g.starts is not None][:MAX_ALL_BOARD]  # compared or underway
+            hidden, board = len(board) - len(shown), shown
         parts.append('<section><h2>Every game <span class="muted small">Kalshi price vs. sportsbooks</span></h2>'
                      '<p class="muted small">Each box: the team, what it costs on Kalshi, the sportsbooks\' chance, '
                      'and the difference in points (green = cheaper on Kalshi).</p>')
@@ -333,7 +361,10 @@ every game below.</p></div>''')
             parts.append('<p class="muted empty" id="none" style="display:none">No games match your search.</p>')
         else:
             parts.append(f'<div class="card empty"><p class="muted">No upcoming {esc(name)} games on Kalshi right now.</p></div>')
-        if result.unmatched:
+        if hidden:
+            parts.append(f'<p class="muted small">{hidden} more games weren\'t compared with the sportsbooks: '
+                         'see <a href="/find">All bets</a>.</p>')
+        elif result.unmatched:
             parts.append('<p class="muted small">Not compared (the sportsbooks don\'t list these the same way): '
                          + esc(", ".join(result.unmatched[:8])) + ("…" if len(result.unmatched) > 8 else "") + "</p>")
         parts.append("</section>")
@@ -402,6 +433,168 @@ it costs; it pays $1.00 if you're right.</p>
             parts.append('<p class="muted empty" id="none" style="display:none">No games match your search.</p>')
         parts.append(SEARCH_JS)
         return page(s, "All bets", "".join(parts), tab="find")
+
+    # ------------------------------------------------------------ research
+
+    def research_summary() -> dict | None:
+        try:
+            return json.loads((RESEARCH_DIR / "summary.json").read_text())
+        except (OSError, ValueError):
+            return None
+
+    @app.get("/research")
+    def research_page(request: Request):
+        if (blocked := guard(request)) is not None:
+            return blocked
+        s = settings()
+        data = research_summary()
+        parts = ['''<h1>Research</h1><p class="lead">What Kalshi's past prices say about where the money is.
+Each league's finished games are tested: were cheap contracts overpriced, and did buying when Kalshi was cheaper
+than the sportsbooks make money?</p>''']
+        if not data:
+            parts.append('''<div class="card empty"><h3>No research yet</h3><p class="muted">It runs on GitHub every
+Tuesday morning, or anytime from GitHub → your <b>kalshi</b> repository → Actions → Research → Run workflow.
+Results show up here a couple of minutes after it finishes.</p></div>''')
+            return page(s, "Research", "".join(parts), tab="research")
+        parts.append(f'<p class="status"><span>Updated {esc(when(data.get("generated")))}</span>'
+                     f'<span>Games since {esc(data.get("since"))}</span></p>')
+        for lg in data.get("leagues") or []:
+            cls, label = TAGS.get(lg.get("tag"), ("neg", ""))
+            if lg.get("source"):
+                facts = f'{lg.get("games", 0):,} games · closing lines from {esc(lg["source"])}'
+            else:
+                facts = f'{lg.get("games", 0):,} games' if lg.get("games") else ""
+            points = "".join(f"<li>{esc(p)}</li>" for p in lg.get("points") or [])
+            points = f'<ul class="points">{points}</ul>' if points else ""
+            more = (f'<p class="actions"><a href="/research/{esc(lg["code"])}">See the full tables →</a></p>'
+                    if lg.get("tag") != "error" else "")
+            parts.append(f'''<article class="card"><span class="badge {cls}">{esc(label)}</span>
+<span class="muted small">{facts}</span><h2 style="margin-top:8px">{esc(lg.get("name"))}</h2>
+<p class="verdict">{esc(lg.get("verdict") or lg.get("error"))}</p>{points}{more}</article>''')
+        if data.get("pooled"):
+            parts.append('<div class="card report">' + mdlite.render("\n".join(data["pooled"]), shift=0) + "</div>")
+        parts.append('''<details class="card"><summary>How to read this</summary>
+<p style="margin-top:10px"><b>Return per bet</b> is what each $1 bet made or lost on average, after Kalshi's fee.
++5% means about 5¢ profit per dollar.</p>
+<p><b>Prediction error</b> (log loss) measures how close prices were to what happened. Lower is better.</p>
+<p>A few dozen bets can look great or awful by luck. Only trust a pattern after a few hundred.</p></details>''')
+        return page(s, "Research", "".join(parts), tab="research")
+
+    @app.get("/research/{code}")
+    def research_league(request: Request, code: str):
+        if (blocked := guard(request)) is not None:
+            return blocked
+        s = settings()
+        code = code.upper()
+        path = RESEARCH_DIR / f"{code}.md"
+        if code not in LEAGUES or not path.is_file():
+            return page(s, "Research", '<div class="card">No report for that league yet. '
+                        '<a href="/research">Back to Research</a></div>', tab="research")
+        return page(s, f"Research: {LEAGUES[code].name}", '<p><a href="/research">← All leagues</a></p>'
+                    '<div class="card report">' + mdlite.render(path.read_text()) + "</div>", tab="research")
+
+    # ------------------------------------------------------------ ask
+
+    def ask_tools(s: Settings) -> dict[str, asking.Tool]:
+        def pick_info(p) -> dict:
+            c, g = p.choice, p.game
+            return {"league": LEAGUES[g.league].name, "game": g.title,
+                    "starts": when(g.starts) if g.starts else str(g.day),
+                    "bet": c.statement, "strength": p.strength, "edge_points": round(p.edge * 100, 1),
+                    "kalshi_price_cents": float(c.yes_ask * 100), "fee_cents": round(float(p.fee) * 100, 1),
+                    "sportsbooks_chance_pct": round(c.book * 100, 1),
+                    "pinnacle_chance_pct": round(c.pinnacle * 100, 1) if c.pinnacle is not None else None,
+                    "cautions": p.notes, "suggested_contracts": p.contracts,
+                    "review_link": bet_href(c.ticker, "yes", max(p.contracts, 1))}
+
+        def get_picks(args: dict) -> dict:
+            league = str(args.get("league") or "ALL").upper()
+            if not s.odds_api_key:
+                return {"error": "Sportsbook odds aren't set up (no ODDS_API_KEY), so there are no picks."}
+            cash = cash_balance(s)
+            if league in LEAGUES:
+                result, left, _ = sources(s).picks(league)
+            else:
+                got = sources(s).picks_all()
+                result, left = got.result, got.left
+            for p in result.picks + result.near:
+                size(p, cash, s.max_order_dollars)
+            return {"picks": [pick_info(p) for p in result.picks[:10]],
+                    "close_calls": [pick_info(p) for p in result.near[:5]],
+                    "games_compared": result.games_matched, "games_on_kalshi": result.games_checked,
+                    "cash_dollars": float(cash) if cash is not None else None,
+                    "max_per_bet_dollars": s.max_order_dollars, "sportsbook_lookups_left": left}
+
+        def find_games(args: dict) -> dict:
+            league = str(args.get("league") or "ALL").upper()
+            words = str(args.get("query") or "").lower().split()
+            loaded = sources(s).games(list(LEAGUES) if league not in LEAGUES else [league], "moneyline")
+            games = [g for g in loaded.games if all(w in g.keywords(LEAGUES[g.league].name) for w in words)]
+            games.sort(key=lambda g: (g.day or date.max, g.title))
+
+            def choice(c) -> dict:
+                return {"outcome": c.statement,
+                        "kalshi_price_cents": float(c.yes_ask * 100) if c.yes_ask is not None else None,
+                        "edge_points": round(c.edge * 100, 1) if c.edge is not None else None,
+                        "review_link": bet_href(c.ticker, "yes")}
+
+            return {"games": [{"league": LEAGUES[g.league].name, "game": g.title, "day": str(g.day),
+                               "choices": [choice(c) for c in g.choices]} for g in games[:12]],
+                    "total_found": len(games), "leagues_not_loaded": loaded.failed}
+
+        def research_results(args: dict) -> dict:
+            return research_summary() or {"error": "No research has run yet."}
+
+        def my_account(args: dict) -> dict:
+            if not s.trading_keys_set:
+                return {"error": "Kalshi keys aren't set up."}
+            with trading_client(s) as c:
+                cash = c.balance_dollars()
+                committed, _ = committed_today(c, s)
+                positions = c.positions()
+            with market_client(s) as rc:
+                names = lookup_names(rc, [p.get("ticker") for p in positions if count_field(p, "position")])
+            return {"cash_dollars": float(cash), "spent_today_dollars": float(committed),
+                    "daily_limit_dollars": s.max_daily_dollars, "max_per_bet_dollars": s.max_order_dollars,
+                    "open_bets": [{"bet": bet_sentence(h.name.statement, h.side), "contracts": h.contracts,
+                                   "pays_if_right": float(h.pays_if_right)} for h in holdings(positions, names)]}
+
+        league = {"type": "string", "enum": ["ALL", *LEAGUES], "description": "League code, or ALL for every league"}
+        return {
+            "get_picks": asking.Tool(
+                "Today's best bets: where Kalshi is cheaper than the sportsbooks' fair chance, with review links.",
+                {"type": "object", "properties": {"league": league}}, get_picks),
+            "find_games": asking.Tool(
+                "Search open Kalshi games by team, nickname, league or day, with prices and review links.",
+                {"type": "object", "properties": {"query": {"type": "string", "description": "e.g. eagles, sunday"},
+                                                  "league": league}, "required": ["query"]}, find_games),
+            "research_results": asking.Tool("What testing Kalshi's past prices found, per league.",
+                                            {"type": "object", "properties": {}}, research_results),
+            "my_account": asking.Tool("The person's Kalshi cash, today's spending, limits and open bets.",
+                                      {"type": "object", "properties": {}}, my_account),
+        }
+
+    @app.get("/ask")
+    def ask(request: Request, q: str = ""):
+        if (blocked := guard(request)) is not None:
+            return blocked
+        s = settings()
+        q = q.strip()[:500]
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not q:
+            return RedirectResponse("/", status_code=303)
+        if not key:
+            return RedirectResponse(asking.route(q), status_code=303)
+        now = now_utc().astimezone(local_zone()).strftime("%A %b %-d, %Y %-I:%M %p %Z")
+        reply = asking.answer(q, ask_tools(s), key, os.environ.get("ASK_MODEL") or asking.DEFAULT_MODEL,
+                              now=now, transport=ask_transport)
+        body = asking.to_html(reply.text) if reply.text else ""
+        if reply.error:
+            body += (f'<p class="bad">{esc(reply.error)}</p><p>Meanwhile: <a href="{esc(asking.route(q))}">'
+                     'the page that matches your words</a>.</p>')
+        return page(s, "Ask", f'''<h1>Ask</h1>{ask_box("")}<div class="card"><p class="question">{esc(q)}</p>
+<div class="reply">{body}</div><p class="muted small">Answers use live Kalshi and sportsbook prices. Nothing is
+bet until you review and approve it.</p></div>''', tab="picks")
 
     # ------------------------------------------------------------ bet: choose → review → send
 

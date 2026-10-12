@@ -90,6 +90,12 @@ SEARCH_JS = """<script>
 </script>"""
 
 
+def ask_box(q: str = "", placeholder: str = "Ask: best NBA bets, Eagles, my balance…") -> str:
+    return (f'<form class="ask" method="get" action="/ask" role="search"><input type="text" name="q" value="{esc(q)}" '
+            f'placeholder="{esc(placeholder)}" aria-label="Ask the bot" autocomplete="off" enterkeyhint="go">'
+            '<button>Ask</button></form>')
+
+
 def league_chips(current: str, href, include_all: bool = False) -> str:
     items = ([("ALL", "All leagues")] if include_all else []) + [(c, lg.name) for c, lg in LEAGUES.items()]
     return '<div class="chips scroll">' + "".join(

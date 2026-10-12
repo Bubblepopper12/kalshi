@@ -123,7 +123,8 @@ limits are checked against your live account before sending.
 
 ### Picks (the bot's recommendations)
 
-The **Picks** tab is the first page after login. For each league it compares
+The **Picks** tab is the first page after login. It opens on **All leagues**: every
+league with games in the next 3 days, best picks first. For each league it compares
 Kalshi's full-game winner prices with the sportsbooks' prices for the same game
 (Pinnacle, DraftKings, FanDuel, BetMGM, Caesars and others, via The Odds API),
 removes the books' built-in margin, and shows a pick when Kalshi sells an outcome
@@ -133,12 +134,26 @@ your cash, never above your per-bet limit) and links to the normal review →
 approve flow. Sportsbooks are only a price reference: all trading is on Kalshi.
 
 Setup: get a free key at the-odds-api.com (500 requests a month; each league
-refresh uses one, results are reused for 10 minutes), then add `ODDS_API_KEY`
+refresh uses one, results are reused for 10 minutes on a single league and 45 minutes
+on All leagues, which also stops new lookups once fewer than 25 are left), then add `ODDS_API_KEY`
 in Vercel (Production, Sensitive) and redeploy. Optional: `PICKS_MIN_EDGE`
 (default `0.03`), `ODDS_BOOKMAKERS` (comma-separated bookmaker keys).
 
 Not in picks yet: tipster track records and the bot's own model (they need
 collected history first), spreads and totals.
+
+### The Ask box: type what you want
+
+The box at the top of Picks takes plain words: "best NBA bets tonight", "eagles",
+"premier league", "my balance", "what did the research find".
+
+- **Without an AI key** it sends you to the matching page (Picks for a league, a team's
+  games, your account, Research).
+- **With `ANTHROPIC_API_KEY`** set in Vercel (Production, Sensitive; get one at
+  console.anthropic.com, billed per use, roughly a few cents a question),
+  Claude answers in plain English using live picks, games, research results and your account,
+  with links. It has no way to place a bet: its links open the normal review page, where you
+  approve. Optional `ASK_MODEL` picks the Claude model.
 
 ### Longshots and patient orders
 
@@ -152,17 +167,30 @@ collected history first), spreads and totals.
   of the taker fee on sports games since July 2025) and wait up to 60 minutes
   (`PICKS_PATIENT_EXPIRY_MINUTES`); if nobody sells, they cancel and cost nothing.
 
-### Testing the strategy on Kalshi's own price history (run on your computer)
+### Research: testing every league on Kalshi's own price history
+
+One command runs everything for all 10 leagues:
 
 ```bash
-picks history download NFL --since 2026-09-01   # hourly prices of every finished NFL winner market
-picks history analyze NFL                       # writes research/kalshi_NFL_report.md
+picks research                         # all leagues, games since Aug 1 2025
+picks research --leagues NFL,EPL       # just some
 ```
 
-The report answers: (1) do cheap contracts win less often than their price (longshot bias) in
-sports? and (2) using nflverse's closing moneylines, would buying when Kalshi was 0/3/5+ points
-cheaper than the books (at the price an hour before kickoff, fees included) have made money?
-Paste the report to Claude to go through it.
+It downloads the hourly prices of every finished winner market (including older games from
+Kalshi's historical archive), loads the sportsbooks' closing lines where a free source exists
+(nflverse for the NFL; football-data.co.uk's Pinnacle closing odds for the Premier League,
+La Liga, Serie A, Bundesliga, Ligue 1 and MLS), and answers: (1) are cheap contracts overpriced
+(longshot bias)? (2) would buying when Kalshi was 3+ points cheaper than the books, an hour
+before the game, fees included, have made money? (3) was Kalshi further off earlier before
+kickoff? College football, the NBA and the Champions League get test 1 only (no free closing
+lines). Output: `research/reports/summary.md` (a plain-English verdict per league, plus all
+leagues pooled) and one full report per league.
+
+**You don't need to run it yourself:** GitHub runs it every Tuesday morning
+(`.github/workflows/research.yml`) and saves the reports, Vercel redeploys, and the website's
+**Research** tab shows them. To run it now: GitHub → kalshi → Actions → Research → Run workflow.
+
+The older single-league commands still work: `picks history download NFL`, `picks history analyze NFL`.
 
 ### Emergency stops
 

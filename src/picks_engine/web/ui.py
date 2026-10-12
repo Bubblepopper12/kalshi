@@ -95,13 +95,25 @@ a.out:hover{border-color:var(--accent)}.out.off{opacity:.55}
 .actions{margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .status{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin:6px 0 0}
 .empty{text-align:center;padding:26px 16px}
+.ask{display:flex;gap:8px;margin:12px 0}.ask input{flex:1;min-width:0;font-size:17px;padding:13px 14px;border-radius:12px}
+.ask button{flex:none;border-radius:12px}
+.reply p,.reply ul{margin:0 0 10px}.reply ul{padding-left:20px}.reply li{margin:4px 0}
+.question{font-weight:700;font-size:19px;margin:0 0 6px}
+.tablewrap{overflow-x:auto;margin:6px 0 12px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:13px}
+.report h2{font-size:21px;margin:18px 0 8px}.report h3{font-size:17px;margin:16px 0 6px}
+.verdict{font-weight:700;margin:6px 0 8px}.points{margin:0;padding-left:20px}.points li{margin:4px 0}
+.badge.warn{background:var(--warn-soft);color:var(--ink)}.badge.bad{background:var(--danger-soft);color:var(--ink)}
 @media (max-width:520px){header.top{gap:2px;flex-wrap:nowrap}header .brand{font-size:16px}
-header a.tab{padding:7px 9px;font-size:15px}header a.logout{font-size:13px;padding:6px 4px}
+header a.tab{padding:7px 8px;font-size:14px}header a.logout{font-size:13px;padding:6px 4px}
 h1{font-size:24px}}
-@media (max-width:360px){header .brand{display:none}}
+@media (max-width:420px){header .brand{display:none}header a.tab{padding:7px 7px}}
 """
 
-TABS = (("picks", "/", "Picks"), ("find", "/find", "All bets"), ("home", "/account", "My account"))
+TABS = (("picks", "/", "Picks"), ("find", "/find", "All bets"), ("research", "/research", "Research"),
+        ("home", "/account", "Account"))
 STEPS = ("Choose", "Review", "Done")
 
 

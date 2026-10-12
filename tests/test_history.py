@@ -9,6 +9,7 @@ from picks_engine import history
 from picks_engine.kalshi.client import KalshiReadOnlyClient
 
 EVENT = "KXNFLGAME-26OCT05DALPHI"
+ARCHIVED = "KXNFLGAME-26SEP07WASNYG"  # settled before Kalshi's historical cutoff
 # Kickoff Sun Oct 5 2026, 4:25 PM Eastern (daylight time) = 20:25 UTC
 KICKOFF = int(datetime(2026, 10, 5, 20, 25, tzinfo=timezone.utc).timestamp())
 NFLVERSE = ("game_id,season,game_type,week,gameday,gametime,away_team,home_team,away_moneyline,home_moneyline\n"
@@ -44,6 +45,13 @@ def handler(request: httpx.Request) -> httpx.Response:
                         "close_time": "2026-08-02T04:00:00Z" if old else "2026-10-06T04:00:00Z",
                         "expected_expiration_time": "2026-10-06T00:30:00Z"})
         return httpx.Response(200, json={"markets": out, "cursor": ""})
+    if path == "/historical/markets":
+        return httpx.Response(200, json={"markets": [
+            {"ticker": f"{ARCHIVED}-NYG", "event_ticker": ARCHIVED, "yes_sub_title": "New York G", "result": "yes",
+             "open_time": "2026-09-01T12:00:00Z", "close_time": "2026-09-08T04:00:00Z",
+             "expected_expiration_time": "2026-09-08T00:30:00Z"}], "cursor": ""})
+    if path.startswith("/historical/markets/"):
+        return httpx.Response(200, json={"candlesticks": candles([40, 41])})
     if path.endswith("/candlesticks"):
         ticker = path.split("/")[-2]
         assert request.url.params["period_interval"] == "60"
@@ -63,7 +71,8 @@ def downloaded(tmp_path):
 def test_download_writes_hourly_rows(downloaded):
     out, rows = downloaded
     data = list(csv.DictReader(out.open()))
-    assert rows == 8 and len(data) == 8  # 2 markets x 4 candles; the August market is skipped
+    assert rows == 10 and len(data) == 10  # 2 markets x 4 candles + 2 archived; the August market is skipped
+    assert sum(r["ticker"] == f"{ARCHIVED}-NYG" for r in data) == 2
     phi = [r for r in data if r["ticker"].endswith("PHI")]
     assert phi[0]["team"] == "Philadelphia" and phi[0]["result"] == "yes"
     assert Decimal(phi[1]["yes_ask"]) == Decimal("0.59") and Decimal(phi[1]["yes_bid"]) == Decimal("0.57")

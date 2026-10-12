@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/index.py": {
-      "includeFiles": "src/picks_engine/**",
+      "includeFiles": "{src/picks_engine/**,research/reports/**}",
       "maxDuration": 60
     }
   },

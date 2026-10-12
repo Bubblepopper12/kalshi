@@ -289,6 +289,21 @@ def cmd_history(args, settings):
     print(f"\nSaved to {out}. Paste it to Claude to read the results.")
 
 
+def cmd_research(args, settings):
+    from datetime import datetime, timezone
+
+    from . import research
+    from .kalshi.leagues import LEAGUES, get_league
+
+    leagues = [get_league(c.strip()).code for c in args.leagues.split(",")] if args.leagues else list(LEAGUES)
+    since = datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc)
+    with _client(settings) as client:
+        results = research.run(client, leagues, since, fee_rate=settings.kalshi_fee_rate,
+                               progress=lambda m: print(m, flush=True), reuse_data=args.reuse)
+    print("\n" + "\n".join(f"{r.name}: {r.verdict or r.error}" for r in results))
+    print(f"\nFull results: {research.REPORTS / 'summary.md'} (also on the website's Research tab once pushed).")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="picks", description="Kalshi Picks Engine (read-only research tool)")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -363,6 +378,12 @@ def build_parser() -> argparse.ArgumentParser:
     ha.add_argument("--file", help="history CSV (default research/kalshi_<LEAGUE>_history.csv)")
     ha.add_argument("--nflverse", help="local nflverse games.csv (default: download it)")
     hp.set_defaults(func=cmd_history)
+
+    rp = sub.add_parser("research", help="run every history test for every league and write a plain-English summary")
+    rp.add_argument("--leagues", help="comma-separated, e.g. NFL,EPL (default: all)")
+    rp.add_argument("--since", default="2025-08-01", help="first day (YYYY-MM-DD)")
+    rp.add_argument("--reuse", action="store_true", help="reuse price files already in research/data")
+    rp.set_defaults(func=cmd_research)
 
     b = sub.add_parser("board", help="open the Streamlit pick board")
     b.add_argument("streamlit_args", nargs=argparse.REMAINDER)

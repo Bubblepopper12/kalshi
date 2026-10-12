@@ -1,14 +1,15 @@
-"""Kalshi price history for finished games, and two honest tests on it.
+"""Kalshi price history for finished games, and honest tests on it.
 
 download():  every settled full-game winner market for a league since a date, with hourly
              price candles, written to a CSV (one row per market per hour).
 analyze():   1. Longshot bias: are cheap contracts overpriced? Buckets the pre-game ask price
                 and compares it with how often those contracts actually won.
-             2. Kalshi vs. sportsbooks (NFL): using nflverse closing moneylines, would buying
-                when Kalshi was cheaper than the books' fair chance have made money?
+             2. Kalshi vs. sportsbooks: using closing lines (nflverse for the NFL, football-data
+                for soccer; see reference.py), would buying when Kalshi was cheaper than the
+                books' fair chance have made money?
+             3. Timing: was Kalshi further from the closing line earlier before kickoff?
 
-Runs where Kalshi is reachable (e.g. your own computer):  picks history download NFL
-                                                          picks history analyze NFL
+Runs where Kalshi is reachable (your computer, or GitHub's servers):  picks research
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from .kalshi.client import KalshiReadOnlyClient
 from .kalshi.leagues import LEAGUES, game_series
 from .pricing.devig import devig
 from .pricing.fees import fee_per_contract
+from .reference import RefGame, name_match
 
 try:
     from zoneinfo import ZoneInfo
@@ -91,15 +93,27 @@ def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Pa
         w = csv.DictWriter(fh, COLUMNS)
         w.writeheader()
         for sr in series:
+            wanted = lambda m: ((_ts(m.get("close_time")) or 0) >= since.timestamp()  # noqa: E731
+                                and m.get("result") in ("yes", "no"))
             markets = [m for m in client.markets(series_ticker=sr["ticker"], status="settled",
-                                                 min_close_ts=int(since.timestamp()))
-                       if (_ts(m.get("close_time")) or 0) >= since.timestamp() and m.get("result") in ("yes", "no")]
-            progress(f"{sr['ticker']}: {len(markets)} finished markets since {since:%b %-d}")
+                                                 min_close_ts=int(since.timestamp())) if wanted(m)]
+            seen = {m["ticker"] for m in markets}
+            try:  # older games live under Kalshi's historical endpoints
+                old = [dict(m, _historical=True) for m in client.historical_markets(sr["ticker"])
+                       if wanted(m) and m.get("ticker") not in seen]
+            except httpx.HTTPStatusError:
+                old = []
+            markets += old
+            progress(f"{sr['ticker']}: {len(markets)} finished markets since {since:%b %-d}"
+                     + (f" ({len(old)} from Kalshi's archive)" if old else ""))
             for i, m in enumerate(markets, 1):
                 start = _ts(m.get("open_time")) or int((since - timedelta(days=7)).timestamp())
                 end = _ts(m.get("close_time")) or int(datetime.now(timezone.utc).timestamp())
                 try:
-                    candles = client.candlesticks(sr["ticker"], m["ticker"], start, end, period_minutes)
+                    if m.get("_historical"):
+                        candles = client.historical_candlesticks(m["ticker"], start, end, period_minutes)
+                    else:
+                        candles = client.candlesticks(sr["ticker"], m["ticker"], start, end, period_minutes)
                 except httpx.HTTPStatusError as exc:
                     progress(f"  skipped {m['ticker']}: Kalshi returned {exc.response.status_code}")
                     continue
@@ -148,13 +162,50 @@ class Bucket:
 
 
 @dataclass
+class Rule:
+    label: str
+    bets: int
+    wins: int
+    pnl: float  # dollars per $1 contract, summed
+
+    @property
+    def per_bet(self) -> float:
+        return self.pnl / self.bets if self.bets else 0.0
+
+
+@dataclass
+class Comparison:
+    """Kalshi's pre-game prices next to the sportsbooks' closing no-vig chances."""
+
+    matched: int
+    loss_kalshi: float  # log loss, lower = better predictions
+    loss_books: float
+    rules: list[Rule]
+
+    def rule(self, edge_points: int) -> Rule:
+        return self.rules[{0: 0, 3: 1, 5: 2}[edge_points]]
+
+
+@dataclass
 class Report:
     markets: int
     buckets: list[Bucket]
     strategy: list[str] = field(default_factory=list)
+    games: int = 0
+    comparison: Comparison | None = None
+    source: str = ""  # where the closing lines came from, "" if none
+
+    def longshots(self, below_cents: int = 20) -> Rule:
+        bs = [b for b in self.buckets if b.high <= below_cents]
+        return Rule(f"under {below_cents}¢", sum(b.n for b in bs), sum(b.wins for b in bs), sum(b.pnl for b in bs))
+
+    def favorites(self, from_cents: int = 70) -> Rule:
+        bs = [b for b in self.buckets if b.low >= from_cents]
+        return Rule(f"{from_cents}¢ and up", sum(b.n for b in bs), sum(b.wins for b in bs), sum(b.pnl for b in bs))
 
     def markdown(self, league: str) -> str:
-        out = [f"# Kalshi {league} history test ({datetime.now():%b %-d, %Y})", "",
+        name = LEAGUES[league].name if league in LEAGUES else league
+        out = [f"# Kalshi {name} history test ({datetime.now():%b %-d, %Y})", "",
                f"{self.markets} finished winner markets, priced before each game.", "",
                "## 1. Are cheap contracts overpriced? (longshot bias)", "",
                "Buying at the pre-game ask price, including Kalshi's fee:", "",
@@ -163,7 +214,13 @@ class Report:
         out += [b.line() for b in self.buckets]
         out += ["", "If cheap buckets win less often than their price, longshots are overpriced.", ""]
         if self.strategy:
-            out += ["## 2. Buying when Kalshi was cheaper than the sportsbooks", ""] + self.strategy
+            out += ["## 2. Buying when Kalshi was cheaper than the sportsbooks", ""]
+            if self.source:
+                out += [f"Closing lines from {self.source}.", ""]
+            out += self.strategy
+        else:
+            out += ["## 2. Kalshi vs. the sportsbooks", "",
+                    "Skipped: there's no free source of closing sportsbook lines for this league.", ""]
         return "\n".join(out)
 
 
@@ -255,21 +312,20 @@ def nfl_match(snaps: list[Snapshot], games: list[dict]) -> tuple[dict[str, int],
     return kickoffs, fair
 
 
-def strategy_lines(snaps: list[Snapshot], fair: dict[str, tuple[float, str]], fee_rate: float = 0.07) -> list[str]:
+def compare_with_books(snaps: list[Snapshot], fair: dict[str, tuple[float, str]],
+                       fee_rate: float = 0.07) -> Comparison | None:
     matched = [(s, fair[s.ticker][0]) for s in snaps if s.ticker in fair]
     if not matched:
-        return ["No games matched the sportsbook closing lines (nflverse may not have this season's odds yet)."]
-    lines = [f"{len(matched)} Kalshi prices matched with closing sportsbook lines.", ""]
+        return None
     ll_k = ll_b = 0.0
     for s, f in matched:
         mid = float(s.ask if s.bid is None else (s.ask + s.bid) / 2)
         mid = min(max(mid, 0.01), 0.99)
+        f = min(max(f, 0.001), 0.999)
         y = 1.0 if s.won else 0.0
         ll_k -= y * math.log(mid) + (1 - y) * math.log(1 - mid)
         ll_b -= y * math.log(f) + (1 - y) * math.log(1 - f)
-    lines += [f"Prediction error (log loss, lower is better): Kalshi {ll_k / len(matched):.3f}, "
-              f"sportsbooks {ll_b / len(matched):.3f}.", "",
-              "| Rule | Bets | Won | Return per bet |", "| --- | --- | --- | --- |"]
+    rules = []
     for edge in (0.0, 0.03, 0.05):
         n = wins = 0
         pnl = 0.0
@@ -279,9 +335,22 @@ def strategy_lines(snaps: list[Snapshot], fair: dict[str, tuple[float, str]], fe
                 n += 1
                 wins += s.won
                 pnl += (1 - cost) if s.won else -cost
-        rule = "any" if edge == 0 else f"{edge * 100:.0f}+"
-        lines.append(f"| Kalshi {rule} points cheaper than the books | {n} | {wins} | "
-                     f"{(pnl / n * 100 if n else 0):+.1f}% |")
+        rules.append(Rule("any" if edge == 0 else f"{edge * 100:.0f}+", n, wins, pnl))
+    return Comparison(len(matched), ll_k / len(matched), ll_b / len(matched), rules)
+
+
+def strategy_lines(snaps: list[Snapshot], fair: dict[str, tuple[float, str]], fee_rate: float = 0.07,
+                   comparison: Comparison | None = None) -> list[str]:
+    c = comparison or compare_with_books(snaps, fair, fee_rate)
+    if c is None:
+        return ["No games matched the sportsbook closing lines (the source may not have this season yet)."]
+    lines = [f"{c.matched} Kalshi prices matched with closing sportsbook lines.", "",
+             f"Prediction error (log loss, lower is better): Kalshi {c.loss_kalshi:.3f}, "
+             f"sportsbooks {c.loss_books:.3f}.", "",
+             "| Rule | Bets | Won | Return per bet |", "| --- | --- | --- | --- |"]
+    for r in c.rules:
+        lines.append(f"| Kalshi {r.label} points cheaper than the books | {r.bets} | {r.wins} | "
+                     f"{r.per_bet * 100:+.1f}% |")
     lines += ["", "Small samples swing a lot: treat fewer than ~200 bets as a hint, not proof."]
     return lines
 
@@ -323,13 +392,22 @@ def timing_lines(path: Path, kickoffs: dict[str, int], fair: dict[str, tuple[flo
     return lines + [""]
 
 
-def analyze(path: Path, league: str, nflverse_csv: str | None = None, fee_rate: float = 0.07) -> Report:
+def analyze(path: Path, league: str, nflverse_csv: str | None = None, fee_rate: float = 0.07,
+            reference: list[RefGame] | None = None, source: str = "") -> Report:
+    """Run the tests. Closing lines come from nflverse (NFL) or `reference` (other leagues)."""
     kickoffs, fair = {}, {}
     if league == "NFL" and nflverse_csv:
-        prelim = load_snapshots(path)
-        kickoffs, fair = nfl_match(prelim, nflverse_games(nflverse_csv))
+        kickoffs, fair = nfl_match(load_snapshots(path), nflverse_games(nflverse_csv))
+        source = source or "nflverse"
+    elif reference is not None:
+        kickoffs, fair = name_match(load_snapshots(path), reference)
     snaps = load_snapshots(path, kickoffs or None)
-    report = Report(markets=len(snaps), buckets=longshot_buckets(snaps, fee_rate))
-    if league == "NFL" and nflverse_csv:
-        report.strategy = strategy_lines(snaps, fair, fee_rate) + [""] + timing_lines(path, kickoffs, fair, fee_rate)
+    report = Report(markets=len(snaps), buckets=longshot_buckets(snaps, fee_rate),
+                    games=len({s.event_ticker for s in snaps}))
+    if (league == "NFL" and nflverse_csv) or reference is not None:
+        report.source = source
+        report.comparison = compare_with_books(snaps, fair, fee_rate)
+        report.strategy = strategy_lines(snaps, fair, fee_rate, report.comparison)
+        if kickoffs and report.comparison:
+            report.strategy += [""] + timing_lines(path, kickoffs, fair, fee_rate)
     return report

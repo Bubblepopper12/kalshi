@@ -331,7 +331,8 @@ def test_picks_page_no_strong_picks(env, exchange, fake, monkeypatch):
     handler, _ = odds_feed(books=((-130, 110), (-135, 115)))  # Philadelphia ~55%: Kalshi's 58c is too dear
     web = picks_web(fake, exchange, handler)
     login(web)
-    assert "No strong picks in NFL right now" in web.get("/").text
+    assert "No strong picks in NFL right now" in web.get("/?league=NFL").text
+    assert "No strong picks in all leagues right now" in web.get("/").text
 
 
 def test_bet_link_prefills_contracts_and_price(web):
@@ -406,3 +407,15 @@ def test_no_patient_option_on_tight_books(web):
     login(web)
     r = web.get(f"/bet?ticker={TICKER}&side=yes")  # fake market: 54c bid, 55c ask
     assert "Patient offer not available" in r.text
+
+
+def test_all_leagues_saves_lookups_when_quota_is_low(env, exchange, fake, monkeypatch):
+    from picks_engine.web import data
+    monkeypatch.setenv("ODDS_API_KEY", "odds-key")
+    handler, calls = odds_feed()
+    web = picks_web(fake, exchange, handler)
+    login(web)
+    data._quota["left"] = 10
+    r = web.get("/")
+    assert calls == [] and "Skipped to save sportsbook lookups" in r.text and "NFL" in r.text
+    assert web.get("/?league=NFL").status_code == 200 and len(calls) == 1  # a single league still looks up

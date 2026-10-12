@@ -31,6 +31,7 @@ _SPECIAL = str.maketrans({"ø": "o", "Ø": "O", "æ": "ae", "Æ": "AE", "ß": "s
 def words(name: str) -> list[str]:
     text = unicodedata.normalize("NFKD", (name or "").translate(_SPECIAL)).encode("ascii", "ignore").decode().lower()
     text = re.sub(r"\(([^)]*)\)", r" \1 ", text)
+    text = text.replace("'", "")  # "Nott'm" -> "nottm"
     out: list[str] = []
     for w in re.findall(r"[a-z0-9]+\.?", text):
         w = ALIASES.get(w, w).rstrip(".")

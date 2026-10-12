@@ -3,7 +3,9 @@
 Caches live in memory for the life of a warm server instance:
   * Kalshi listings: 90 s, so prices on every page are fresh;
   * sportsbook odds: 10 min per league (they use the monthly quota), and
-    "Refresh" can't refetch more than once every 2 minutes.
+    "Refresh" can't refetch more than once every 2 minutes. The all-leagues view
+    accepts odds up to 45 min old, only looks up leagues with games in the next
+    3 days, and stops looking up new odds when the monthly quota runs low.
 The comparison itself is recomputed on every page load from fresh Kalshi prices
 and the cached odds, so a pick never rests on a stale Kalshi price.
 """
@@ -13,7 +15,7 @@ from __future__ import annotations
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -21,24 +23,42 @@ from ..config import Settings
 from ..kalshi.client import KalshiReadOnlyClient
 from ..kalshi.leagues import LEAGUES, game_series
 from ..live.board import Game, games_from_events
-from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient
+from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient, OddsAPIError
 from ..live.picks import PicksResult, compare
 
 SERIES_TTL = 600
 EVENTS_TTL = 90
 ODDS_TTL = 600
 ODDS_MIN_REFRESH = 120
+ALL_ODDS_TTL = 45 * 60
+SOON_DAYS = 3
+QUOTA_FLOOR = 25  # below this many lookups left, the all-leagues view only uses odds it already has
 MAX_PARALLEL = 5
 
 _series: dict[str, tuple[float, list[dict]]] = {}
 _events: dict[tuple[str, str], tuple[float, list[dict]]] = {}
 _odds: dict[str, tuple[float, list[dict], int | None]] = {}
+_quota: dict[str, int] = {}  # last known sportsbook lookups left this month
 
 
 def clear_caches() -> None:
     _series.clear()
     _events.clear()
     _odds.clear()
+    _quota.clear()
+
+
+@dataclass
+class AllPicks:
+    """Picks across every league at once."""
+
+    result: PicksResult
+    left: int | None  # sportsbook lookups left this month
+    oldest: float | None  # when the oldest odds used were fetched
+    leagues: list[str] = field(default_factory=list)  # league codes compared
+    quiet: list[str] = field(default_factory=list)  # league names with no Kalshi games in the next few days
+    waiting: list[str] = field(default_factory=list)  # league names skipped to save sportsbook lookups
+    failed: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -114,21 +134,91 @@ class Sources:
 
     # ------------------------------------------------------------ comparison with sportsbooks
 
+    def _odds_for(self, league: str, max_age: float) -> tuple[float, list[dict], int | None]:
+        hit = _odds.get(league)
+        now = time.time()
+        if hit and now - hit[0] < max_age:
+            return hit
+        s = self.settings
+        with OddsAPIClient(s.odds_api_key or "", s.odds_bookmakers or DEFAULT_BOOKMAKERS,
+                           transport=self.odds_transport) as oc:
+            odds = oc.moneylines(LEAGUES[league].odds_sport)
+        hit = (now, odds.events, odds.requests_remaining)
+        _odds[league] = hit
+        if odds.requests_remaining is not None:
+            _quota["left"] = odds.requests_remaining
+        return hit
+
     def picks(self, league: str, refresh: bool = False) -> tuple[PicksResult, int | None, float | None]:
         """(result, sportsbook lookups left, when the odds were fetched) for one league."""
-        s, lg = self.settings, LEAGUES[league]
+        lg = LEAGUES[league]
         games = games_from_events(self.events(league, "moneyline"), league, "moneyline")
         if not games:  # nothing on Kalshi: don't spend a sportsbook lookup, don't cache anything
             hit = _odds.get(league)
             return compare([], [], three_way=lg.three_way), (hit[2] if hit else None), None
-        now = time.time()
-        hit = _odds.get(league)
-        fresh = hit and (now - hit[0] < (ODDS_MIN_REFRESH if refresh else ODDS_TTL))
-        if not fresh:
-            with OddsAPIClient(s.odds_api_key or "", s.odds_bookmakers or DEFAULT_BOOKMAKERS,
-                               transport=self.odds_transport) as oc:
-                odds = oc.moneylines(lg.odds_sport)
-            hit = (now, odds.events, odds.requests_remaining)
-            _odds[league] = hit
+        hit = self._odds_for(league, ODDS_MIN_REFRESH if refresh else ODDS_TTL)
         result = compare(games, hit[1], three_way=lg.three_way, now=self.now(), **self.compare_options())
         return result, hit[2], hit[0]
+
+    def picks_all(self, refresh: bool = False) -> AllPicks:
+        """Every league with Kalshi games in the next few days, compared with the sportsbooks."""
+        with self.kalshi() as rc:
+            self._sports_series(rc)
+        today = (self.now() or datetime.now(timezone.utc)).date()
+        soon = today + timedelta(days=SOON_DAYS)
+
+        def load(code: str):
+            try:
+                games = games_from_events(self.events(code, "moneyline"), code, "moneyline")
+            except httpx.HTTPError:
+                return code, None
+            return code, [g for g in games if g.day is None or today - timedelta(days=1) <= g.day <= soon]
+
+        out = AllPicks(PicksResult([], [], [], 0, 0, []), None, None)
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+            loaded = list(pool.map(load, list(LEAGUES)))
+
+        def compared(item):
+            code, games = item
+            if games is None:
+                return code, None, "failed"
+            if not games:
+                return code, None, "no games"
+            hit = _odds.get(code)
+            max_age = ODDS_MIN_REFRESH if refresh else ALL_ODDS_TTL
+            fresh = hit is not None and time.time() - hit[0] < max_age
+            low = _quota.get("left", QUOTA_FLOOR) < QUOTA_FLOOR
+            if not fresh and low:  # keep the last lookups for single-league pages; reuse older odds if any
+                if hit is None:
+                    return code, None, "quota"
+            elif not fresh:
+                try:
+                    hit = self._odds_for(code, max_age)
+                except (httpx.HTTPError, OddsAPIError):
+                    return code, None, "failed"
+            lg = LEAGUES[code]
+            return code, (compare(games, hit[1], three_way=lg.three_way, now=self.now(), **self.compare_options()),
+                          hit), ""
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+            for code, got, why in pool.map(compared, loaded):
+                name = LEAGUES[code].name
+                if got is None:
+                    {"failed": out.failed, "quota": out.waiting, "no games": out.quiet}[why].append(name)
+                    continue
+                r, hit = got
+                out.leagues.append(code)
+                res = out.result
+                res.picks += r.picks
+                res.near += r.near
+                res.board += r.board
+                res.games_checked += r.games_checked
+                res.games_matched += r.games_matched
+                res.unmatched += r.unmatched
+                res.in_progress += r.in_progress
+                out.oldest = hit[0] if out.oldest is None else min(out.oldest, hit[0])
+                if hit[2] is not None:
+                    out.left = hit[2] if out.left is None else min(out.left, hit[2])
+        out.result.picks.sort(key=lambda p: -p.edge)
+        out.result.near.sort(key=lambda p: -p.edge)
+        return out

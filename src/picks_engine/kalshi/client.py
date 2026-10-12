@@ -142,6 +142,17 @@ class KalshiReadOnlyClient:
                         {"start_ts": int(start_ts), "end_ts": int(end_ts), "period_interval": period_minutes})
         return data.get("candlesticks") or []
 
+    # Markets settled before Kalshi's moving "historical cutoff" (and their candles) are only served
+    # under /historical; see GET /historical/cutoff.
+
+    def historical_markets(self, series_ticker: str) -> Iterator[dict]:
+        return self.paginate("/historical/markets", "markets", {"series_ticker": series_ticker, "limit": 1000})
+
+    def historical_candlesticks(self, ticker: str, start_ts: int, end_ts: int, period_minutes: int = 60) -> list[dict]:
+        data = self.get(f"/historical/markets/{ticker}/candlesticks",
+                        {"start_ts": int(start_ts), "end_ts": int(end_ts), "period_interval": period_minutes})
+        return data.get("candlesticks") or []
+
     def orderbook(self, ticker: str, depth: int | None = None) -> "OrderBook":
         data = self.get(f"/markets/{ticker}/orderbook", {"depth": depth})
         return OrderBook.from_api(data)

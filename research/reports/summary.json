@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-12T22:51:48+00:00",
+  "generated": "2026-10-12T22:52:01+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -278,18 +278,93 @@
       "markets": 1320,
       "games": 440,
       "source": "football-data.co.uk (Pinnacle closing odds)",
-      "tag": "few",
-      "verdict": "Too few cheap Kalshi prices to tell yet.",
+      "tag": "none",
+      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 0 times in 1,317 prices).",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1287 prices compared).",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1317 prices compared).",
         "Kalshi was never 3+ points cheaper than the books before a game.",
         "Cheap long shots (under 20\u00a2): 188 bets, 14% won, -0.8% per bet.",
         "Big favorites (70\u00a2 and up): 48 bets, 71% won, -6.3% per bet."
       ],
       "error": "",
-      "updated": "",
-      "buckets": [],
-      "rule3": []
+      "updated": "2026-10-12T22:52:01+00:00",
+      "buckets": [
+        [
+          0,
+          21,
+          1.2500000000000002,
+          1,
+          -0.3410000000000002
+        ],
+        [
+          10,
+          167,
+          25.570000000000018,
+          26,
+          -1.144000000000002
+        ],
+        [
+          20,
+          532,
+          134.5400000000002,
+          151,
+          9.135000000000005
+        ],
+        [
+          30,
+          207,
+          69.59999999999997,
+          65,
+          -7.902000000000013
+        ],
+        [
+          40,
+          150,
+          66.85999999999994,
+          64,
+          -5.531999999999999
+        ],
+        [
+          50,
+          112,
+          60.97000000000001,
+          46,
+          -16.975
+        ],
+        [
+          60,
+          83,
+          53.299999999999955,
+          53,
+          -1.6650000000000023
+        ],
+        [
+          70,
+          35,
+          25.6,
+          24,
+          -2.097000000000001
+        ],
+        [
+          80,
+          13,
+          10.81,
+          10,
+          -0.9430000000000004
+        ],
+        [
+          90,
+          0,
+          0.0,
+          0,
+          0.0
+        ]
+      ],
+      "rule3": [
+        0,
+        0,
+        0.0
+      ]
     },
     {
       "code": "UCL",
@@ -407,19 +482,19 @@
   "pooled": [
     "## All leagues together",
     "",
-    "7,066 Kalshi markets from 3,571 games (NFL, College football / CFP, NBA).",
+    "8,386 Kalshi markets from 4,011 games (NFL, College football / CFP, NBA, Premier League).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
-    "| 0\u201310\u00a2 | 560 | 4% | 8% | +3.4% |",
-    "| 10\u201320\u00a2 | 568 | 15% | 15% | -1.2% |",
-    "| 20\u201330\u00a2 | 685 | 25% | 24% | -1.5% |",
-    "| 30\u201340\u00a2 | 844 | 35% | 36% | -0.5% |",
-    "| 40\u201350\u00a2 | 881 | 44% | 46% | -0.5% |",
-    "| 50\u201360\u00a2 | 791 | 55% | 52% | -4.3% |",
-    "| 60\u201370\u00a2 | 878 | 64% | 61% | -5.0% |",
-    "| 70\u201380\u00a2 | 739 | 74% | 74% | -1.5% |",
-    "| 80\u201390\u00a2 | 600 | 84% | 83% | -2.7% |",
+    "| 0\u201310\u00a2 | 581 | 4% | 8% | +3.2% |",
+    "| 10\u201320\u00a2 | 735 | 15% | 15% | -1.1% |",
+    "| 20\u201330\u00a2 | 1217 | 25% | 26% | -0.1% |",
+    "| 30\u201340\u00a2 | 1051 | 34% | 35% | -1.2% |",
+    "| 40\u201350\u00a2 | 1031 | 44% | 45% | -1.0% |",
+    "| 50\u201360\u00a2 | 903 | 55% | 51% | -5.6% |",
+    "| 60\u201370\u00a2 | 961 | 64% | 61% | -4.7% |",
+    "| 70\u201380\u00a2 | 774 | 74% | 74% | -1.7% |",
+    "| 80\u201390\u00a2 | 613 | 84% | 83% | -2.8% |",
     "| 90\u2013100\u00a2 | 520 | 95% | 96% | +1.1% |",
     "",
     "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 3 bets, 2 won, +36.0% per bet after fees.",

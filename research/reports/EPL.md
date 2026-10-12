@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1287 Kalshi prices matched with closing sportsbook lines.
+1317 Kalshi prices matched with closing sportsbook lines.
 
 Prediction error (log loss, lower is better): Kalshi 0.596, sportsbooks 0.596.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 66 | 23 | -3.6% |
+| Kalshi any points cheaper than the books | 69 | 23 | -5.2% |
 | Kalshi 3+ points cheaper than the books | 0 | 0 | +0.0% |
 | Kalshi 5+ points cheaper than the books | 0 | 0 | +0.0% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1287 | 1.8 pts | 17 | 7 | -0.2% |
-| 48 h | 1287 | 1.7 pts | 12 | 8 | +22.6% |
-| 24 h | 1287 | 1.7 pts | 15 | 6 | -7.4% |
-| 6 h | 1287 | 1.3 pts | 5 | 1 | -19.9% |
-| 1 h | 1287 | 1.0 pts | 0 | 0 | +0.0% |
+| 72 h | 1317 | 1.8 pts | 18 | 8 | +3.1% |
+| 48 h | 1317 | 1.7 pts | 12 | 8 | +22.6% |
+| 24 h | 1317 | 1.7 pts | 16 | 6 | -9.8% |
+| 6 h | 1317 | 1.3 pts | 6 | 1 | -24.2% |
+| 1 h | 1317 | 1.0 pts | 0 | 0 | +0.0% |

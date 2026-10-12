@@ -25,6 +25,20 @@ def bet_href(ticker: str, side: str = "yes", contracts: int | None = None) -> st
     return "/bet?" + urlencode(q)
 
 
+def patient_price(ask: Decimal | None, bid: Decimal | None) -> int | None:
+    """A price (in cents) below the ask that would wait in the order book, or None if there's no room.
+
+    One cent under the ask on tight books; on wide books, halfway between buy and sell prices.
+    Resting orders pay Kalshi's maker fee (about a quarter of the taker fee) and skip the spread.
+    """
+    if ask is None or bid is None or not (0 < ask < 1):
+        return None
+    a, b = int(ask * 100), int(bid * 100)
+    if a - b < 2:
+        return None
+    return max(b + 1, a - max(1, (a - b) // 2))
+
+
 # ---------------------------------------------------------------- search + filters
 
 

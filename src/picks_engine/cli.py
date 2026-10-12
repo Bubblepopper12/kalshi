@@ -256,6 +256,39 @@ def cmd_trade(args, settings):
         raise SystemExit(f"Not done: couldn't reach Kalshi ({exc!r}). Run `picks trade refresh` once it's back.") from None
 
 
+def cmd_history(args, settings):
+    from datetime import datetime, timezone
+
+    import httpx
+
+    from . import history
+    from .kalshi.leagues import get_league
+
+    league = get_league(args.league).code
+    path = Path(args.file or f"research/kalshi_{league}_history.csv")
+    if args.history_command == "download":
+        since = datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc)
+        with _client(settings) as client:
+            rows = history.download(client, league, since, path)
+        print(f"Saved {rows} hourly prices to {path}. Next: picks history analyze {league}")
+        return
+    if not path.exists():
+        raise SystemExit(f"No history file at {path}. Run: picks history download {league}")
+    nflverse = None
+    if league == "NFL":
+        try:
+            nflverse = Path(args.nflverse).read_text() if args.nflverse else \
+                httpx.get(history.NFLVERSE_GAMES, timeout=60).text
+        except (OSError, httpx.HTTPError) as exc:
+            print(f"(Skipping the sportsbook comparison: couldn't load nflverse games: {exc})")
+    report = history.analyze(path, league, nflverse, settings.kalshi_fee_rate)
+    text = report.markdown(league)
+    out = path.with_name(f"kalshi_{league}_report.md")
+    out.write_text(text)
+    print(text)
+    print(f"\nSaved to {out}. Paste it to Claude to read the results.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="picks", description="Kalshi Picks Engine (read-only research tool)")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -318,6 +351,18 @@ def build_parser() -> argparse.ArgumentParser:
     h.add_argument("reason", nargs="?")
     ts.add_parser("resume", help="allow approved orders again")
     tp.set_defaults(func=cmd_trade)
+
+    hp = sub.add_parser("history", help="Kalshi price history for finished games, and tests on it")
+    hs = hp.add_subparsers(dest="history_command", required=True)
+    hd = hs.add_parser("download", help="save hourly prices of finished winner markets")
+    hd.add_argument("league")
+    hd.add_argument("--since", default="2026-09-01", help="first day (YYYY-MM-DD)")
+    hd.add_argument("--file", help="CSV to write (default research/kalshi_<LEAGUE>_history.csv)")
+    ha = hs.add_parser("analyze", help="longshot-bias and Kalshi-vs-sportsbook tests")
+    ha.add_argument("league")
+    ha.add_argument("--file", help="history CSV (default research/kalshi_<LEAGUE>_history.csv)")
+    ha.add_argument("--nflverse", help="local nflverse games.csv (default: download it)")
+    hp.set_defaults(func=cmd_history)
 
     b = sub.add_parser("board", help="open the Streamlit pick board")
     b.add_argument("streamlit_args", nargs=argparse.REMAINDER)

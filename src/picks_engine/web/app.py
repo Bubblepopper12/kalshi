@@ -53,7 +53,7 @@ from .describe import KIND_LABELS, bet_sentence, cents, money, when
 from .security import (COOKIE, MIN_PASSWORD_LENGTH, SESSION_HOURS, _password, _totp_secret, sign,  # noqa: F401
                        totp_code, totp_ok, verify)
 from .ui import esc, page, steps
-from .views import SEARCH_JS, game_card, league_chips, pick_card, search_bar
+from .views import SEARCH_JS, game_card, league_chips, patient_price, pick_card, search_bar
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 300
@@ -414,7 +414,7 @@ it costs; it pays $1.00 if you're right.</p>
         return name_market(m) if m else None
 
     def choose_page(s: Settings, ticker: str, side: str, contracts: str = "1", price: str = "",
-                    errors=()) -> HTMLResponse:
+                    errors=(), mode: str = "fast") -> HTMLResponse:
         info = market_info(s, ticker) if ticker else None
         err = "".join(f'<p class="bad">{esc(e)}</p>' for e in errors)
         if info is None:
@@ -426,25 +426,45 @@ it costs; it pays $1.00 if you're right.</p>
 <label>Side<select name="side"><option value="yes">YES (it happens)</option><option value="no">NO (it doesn't)</option></select></label>
 <button>Continue</button></form></details></div>''', tab="find")
         ask = info.yes_ask if side == "yes" else info.no_ask
-        price = price or (str(int(ask * 100)) if ask is not None and 0 < ask < 1 else "")
+        bid = info.yes_bid if side == "yes" else info.no_bid
+        ask_c = int(ask * 100) if ask is not None and 0 < ask < 1 else None
+        patient_c = patient_price(ask, bid)
+        mode = mode if mode == "patient" and patient_c else "fast"
+        price = price or str(patient_c if mode == "patient" else ask_c or "")
         statement = bet_sentence(info.statement, side)
-        rate = s.kalshi_fee_rate
+        if patient_c:
+            save = ask_c - patient_c
+            patient_opt = f'''<label class="check"><input type="radio" name="mode" value="patient" data-p="{patient_c}"
+{"checked" if mode == "patient" else ""}> <span>Patient: offer {patient_c}¢ and wait<br><span class="muted small"
+style="font-weight:400">Saves {save}¢ per contract and pays about ¼ of the fee, but it only goes through if someone sells
+to you within {s.patient_expiry_minutes} minutes. If not, it cancels and you pay nothing.</span></span></label>'''
+        else:
+            patient_opt = ('<p class="muted small">Patient offer not available: the buy and sell prices are only 1¢ '
+                           'apart, so there\'s nothing to save.</p>')
         return page(s, "Bet", f'''{steps(0)}<h1>How many?</h1>{err}
 <div class="card"><div class="muted small">You're betting</div><h2 style="margin:4px 0">{esc(statement)}</h2>
 <p class="muted small">{esc(info.question)}</p>
 <p>Right now it costs <b>{cents(ask)}</b> per contract. Each contract pays <b>$1.00</b> if you're right.</p>
-<form class="stack" method="post" action="/bet" oninput="calc()">
+<form class="stack" method="post" action="/bet" oninput="calc()" onchange="pick(event)">
 <input type="hidden" name="ticker" value="{esc(info.ticker)}"><input type="hidden" name="side" value="{esc(side)}">
 <label>Number of contracts<input id="n" name="contracts" type="number" min="1" step="1" value="{esc(contracts)}" required></label>
-<details><summary>Advanced: most you'll pay per contract</summary>
+<div class="note" style="display:grid;gap:10px"><b>How do you want to buy?</b>
+<label class="check"><input type="radio" name="mode" value="fast" data-p="{ask_c or ""}" {"checked" if mode == "fast" else ""}>
+<span>Buy now at {cents(ask)}<br><span class="muted small" style="font-weight:400">Goes through right away.
+Normal Kalshi fee.</span></span></label>{patient_opt}</div>
+<details><summary>Advanced: set your own max price</summary>
 <label style="margin-top:10px">Max price (¢)<input id="p" name="price" type="number" min="1" max="99" value="{esc(price)}" required></label>
 <p class="muted small">Your order only fills at this price or cheaper.</p></details>
 <div class="note" id="sum">…</div>
 <button>Review bet →</button></form>
 <p class="muted small" style="margin-top:12px">Your limits: {money(s.max_order_dollars)} per bet, {money(s.max_daily_dollars)} per day.</p></div>
-<script>function calc(){{var n=parseInt(document.getElementById('n').value)||0,p=(parseInt(document.getElementById('p').value)||0)/100;
-var fee=Math.ceil({rate}*n*p*(1-p)*100-1e-9)/100,cost=n*p+fee;
-document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFixed(2)+'</b> (includes $'+fee.toFixed(2)+' Kalshi fee). '+
+<script>
+function mode(){{var r=document.querySelector('input[name=mode]:checked');return r?r.value:'fast';}}
+function pick(e){{if(e.target.name==='mode'&&e.target.dataset.p){{document.getElementById('p').value=e.target.dataset.p;calc();}}}}
+function calc(){{var n=parseInt(document.getElementById('n').value)||0,p=(parseInt(document.getElementById('p').value)||0)/100;
+var rate=mode()==='patient'?{s.kalshi_maker_fee_rate}:{s.kalshi_fee_rate};
+var fee=Math.ceil(rate*n*p*(1-p)*100-1e-9)/100,cost=n*p+fee;
+document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFixed(2)+'</b> (includes about $'+fee.toFixed(2)+' Kalshi fee). '+
 'If you\\'re right you get back <b>$'+n.toFixed(2)+'</b>.':'Enter how many contracts.';}}calc();</script>''', tab="find")
 
     @app.get("/ticket")
@@ -452,7 +472,8 @@ document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFi
         return RedirectResponse("/bet?" + urlencode({"ticker": ticker, "side": side}), status_code=303)
 
     @app.get("/bet")
-    def bet(request: Request, ticker: str = "", side: str = "yes", contracts: str = "1", price: str = ""):
+    def bet(request: Request, ticker: str = "", side: str = "yes", contracts: str = "1", price: str = "",
+            mode: str = "fast"):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
@@ -461,11 +482,11 @@ document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFi
             return choose_page(s, "", "yes", errors=["That doesn't look like a Kalshi market ticker."])
         contracts = contracts if contracts.isdigit() and int(contracts) > 0 else "1"
         price = price if price.isdigit() and 0 < int(price) < 100 else ""
-        return choose_page(s, ticker, side if side in ("yes", "no") else "yes", contracts, price)
+        return choose_page(s, ticker, side if side in ("yes", "no") else "yes", contracts, price, mode=mode)
 
     @app.post("/bet")
     def review(request: Request, ticker: str = Form(""), side: str = Form("yes"),
-               price: str = Form(""), contracts: str = Form("1")):
+               price: str = Form(""), contracts: str = Form("1"), mode: str = Form("fast")):
         if (blocked := guard(request)) is not None:
             return blocked
         s = settings()
@@ -485,15 +506,21 @@ document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFi
         if not errors:
             errors += static_checks(s, n, px, cost)
         if errors:
-            return choose_page(s, ticker if TICKER_RE.match(ticker) else "", side or "yes", contracts, price, errors)
+            return choose_page(s, ticker if TICKER_RE.match(ticker) else "", side or "yes", contracts, price, errors,
+                               mode=mode)
+        mode = "patient" if mode == "patient" else "fast"
 
         info = market_info(s, ticker)
         statement = bet_sentence(info.statement if info else ticker, side)
         question = info.question if info else ""
-        fee = Decimal(str(kalshi_fee(float(px), n, s.kalshi_fee_rate)))
+        fee_rate = s.kalshi_maker_fee_rate if mode == "patient" else s.kalshi_fee_rate
+        fee = Decimal(str(kalshi_fee(float(px), n, fee_rate)))
+        likely = (n * px + fee).quantize(Decimal("0.01"))  # what it should cost; limits use the worst case (cost)
+        wait = s.patient_expiry_minutes if mode == "patient" else s.order_expiry_minutes
         exp = int(time.time()) + s.ticket_ttl_minutes * 60
         token = sign(s, {"k": "ticket", "env": s.kalshi_env, "ticker": ticker, "side": side, "count": n,
-                         "price": str(px), "coid": str(uuid.uuid4()), "exp": exp, "label": statement[:200]})
+                         "price": str(px), "coid": str(uuid.uuid4()), "exp": exp, "label": statement[:200],
+                         "mode": mode})
 
         cash_line = ""
         if s.trading_keys_set:
@@ -512,17 +539,18 @@ document.getElementById('sum').innerHTML=n>0&&p>0?'You pay up to <b>$'+cost.toFi
 <div class="card"><dl class="sum">
 <dt>Your bet</dt><dd>{esc(statement)}</dd>
 <dt>Market</dt><dd style="font-weight:400">{esc(question) or esc(ticker)}</dd>
+<dt>How</dt><dd>{"Patient offer: waits for a seller at your price" if mode == "patient" else "Buy now"}</dd>
 <dt>Contracts</dt><dd>{n:,} at up to {cents(px)} each</dd>
-<dt>You pay at most</dt><dd>{money(cost)} <span class="muted small" style="font-weight:400">(includes {money(fee)} Kalshi fee)</span></dd>
-<dt>If you're right</dt><dd style="color:var(--accent)">You get {money(n)} back (profit {money(Decimal(n) - cost)})</dd>
-<dt>If you're wrong</dt><dd style="color:var(--danger)">You lose {money(cost)}</dd>
+<dt>You pay</dt><dd>{money(likely)} <span class="muted small" style="font-weight:400">(includes about {money(fee)} Kalshi fee)</span></dd>
+<dt>If you're right</dt><dd style="color:var(--accent)">You get {money(n)} back (profit {money(Decimal(n) - likely)})</dd>
+<dt>If you're wrong</dt><dd style="color:var(--danger)">You lose {money(likely)}</dd>
 </dl></div>
 <div class="card">{live}{cash_line}
 <p class="muted small">Limit order: it only fills at {cents(px)} or cheaper. If nobody sells within
-{s.order_expiry_minutes} minutes, it cancels itself and you pay nothing. This review expires in {s.ticket_ttl_minutes} minutes.</p>
+{wait} minutes, it cancels itself and you pay nothing. This review expires in {s.ticket_ttl_minutes} minutes.</p>
 <form class="stack" method="post" action="/send"><input type="hidden" name="token" value="{esc(token)}">
 <label class="check"><input type="checkbox" name="approve" value="yes" required>
-I approve this bet: {esc(statement)}, {n:,} contracts, at most {money(cost)}</label>
+I approve this bet: {esc(statement)}, {n:,} contracts at up to {cents(px)} ({money(likely)})</label>
 <button>Send bet to Kalshi</button></form>
 <p style="margin-top:12px"><a href="/find">Cancel, don't send</a></p></div>''', tab="find")
 
@@ -565,8 +593,9 @@ I approve this bet: {esc(statement)}, {n:,} contracts, at most {money(cost)}</la
                 if balance < cost:
                     return refuse(f"Your cash is {money(balance.quantize(Decimal('0.01')))}; this bet could cost "
                                   f"{money(cost)}. Add money on kalshi.com → Funds first.")
-                expiration = (int((datetime.now(timezone.utc) + timedelta(minutes=s.order_expiry_minutes)).timestamp())
-                              if s.order_expiry_minutes > 0 else None)
+                wait = s.patient_expiry_minutes if t.get("mode") == "patient" else s.order_expiry_minutes
+                expiration = (int((datetime.now(timezone.utc) + timedelta(minutes=wait)).timestamp())
+                              if wait > 0 else None)
                 result = c.create_limit_buy(ticker=t["ticker"], side=t["side"], count=n, price=px,
                                             client_order_id=t["coid"], expiration_ts=expiration)
         except KalshiAPIError as exc:
@@ -584,7 +613,7 @@ I approve this bet: {esc(statement)}, {n:,} contracts, at most {money(cost)}</la
         return page(s, "Sent", f'''{steps(2)}<h1>{esc(headline)}</h1><div class="card good">
 <p><b>{esc(t.get("label") or t["ticker"])}</b></p>
 <p>{n:,} contracts at up to {cents(px)} · {filled:,} filled so far</p>
-<p class="muted small">{esc(detail.format(mins=s.order_expiry_minutes))}</p></div>
+<p class="muted small">{esc(detail.format(mins=s.patient_expiry_minutes if t.get("mode") == "patient" else s.order_expiry_minutes))}</p></div>
 <p><a class="btn" href="/account">See it in My account</a> <a class="btn ghost" href="/">Back to Picks</a></p>''', tab="find")
 
     return app

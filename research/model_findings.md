@@ -63,3 +63,20 @@ The market wins 10 of 11 seasons. Rest-day difference adds almost nothing (coeff
   the `nba_api` package wraps it. Works from a home computer.
 - nfl_data_py play-by-play EPA: the best-known Elo improvement (QB quality). Needs nflverse
   release files, which this build server can't download.
+
+## Gemini's Kalshi research, checked (Oct 12, 2026)
+
+| Claim | Verdict |
+| --- | --- |
+| PillarLab "Kalshi Market Inefficiency Map" | Not found; no numbers given anyway |
+| Reddit cross-platform "0.8¢ locked in" example | Arithmetic wrong (buy 50.2¢, sell 49.8¢ loses 0.4¢); needs Polymarket |
+| Taker fee = round_up(0.07 × C × P × (1−P)) | Correct (matches `pricing/fees.py`) |
+| "Maker orders are free on sports" | Wrong for NFL/NBA/NHL games: maker fee round_up(0.0175 × C × P × (1−P)) since July 1, 2025 |
+| vcorp-dev/kalshi-price-data archive | Not found |
+
+Real, useful findings from checking it:
+- Favorite-longshot bias on Kalshi: a VoxEU/CEPR study of 300,000+ contracts found low-priced
+  contracts win less often than their prices imply → built as the longshot guard.
+- Maker fees are a quarter of taker fees → built as patient orders.
+- Kalshi candlesticks endpoint (`/series/{series}/markets/{ticker}/candlesticks`, 1/60/1440-minute
+  periods) and Dune's daily Kalshi trade tables → built as `picks history download/analyze`.

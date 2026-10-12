@@ -140,6 +140,30 @@ in Vercel (Production, Sensitive) and redeploy. Optional: `PICKS_MIN_EDGE`
 Not in picks yet: tipster track records and the bot's own model (they need
 collected history first), spreads and totals.
 
+### Longshots and patient orders
+
+- **Longshot guard.** Across 300,000+ Kalshi contracts, cheap contracts won less often than their
+  price implied (VoxEU/CEPR, "The economics of Kalshi"). So outcomes priced under 15¢ need 8+
+  points of edge to become picks, never get the "Strong" label, and carry a note saying why.
+  Settings: `PICKS_LONGSHOT_PRICE` (default `0.15`), `PICKS_LONGSHOT_EDGE` (default `0.08`).
+- **Patient orders.** On the "How many?" step you can *buy now* (fills right away, normal taker
+  fee) or make a *patient offer* below the asking price (one cent under on tight books, halfway
+  on wide ones). Patient offers rest in the order book, pay Kalshi's maker fee (about a quarter
+  of the taker fee on sports games since July 2025) and wait up to 60 minutes
+  (`PICKS_PATIENT_EXPIRY_MINUTES`); if nobody sells, they cancel and cost nothing.
+
+### Testing the strategy on Kalshi's own price history (run on your computer)
+
+```bash
+picks history download NFL --since 2026-09-01   # hourly prices of every finished NFL winner market
+picks history analyze NFL                       # writes research/kalshi_NFL_report.md
+```
+
+The report answers: (1) do cheap contracts win less often than their price (longshot bias) in
+sports? and (2) using nflverse's closing moneylines, would buying when Kalshi was 0/3/5+ points
+cheaper than the books (at the price an hour before kickoff, fees included) have made money?
+Paste the report to Claude to go through it.
+
 ### Emergency stops
 
 - **Cut the bot off from your account:** delete the API key on kalshi.com

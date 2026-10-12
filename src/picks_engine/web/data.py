@@ -62,6 +62,11 @@ class Sources:
     def now(self) -> datetime | None:
         return self.clock() if self.clock else None
 
+    def compare_options(self) -> dict:
+        s = self.settings
+        return {"min_edge": s.picks_min_edge, "fee_rate": s.kalshi_fee_rate,
+                "longshot_price": s.picks_longshot_price, "longshot_edge": s.picks_longshot_edge}
+
     # ------------------------------------------------------------ Kalshi
 
     def _sports_series(self, rc: KalshiReadOnlyClient) -> list[dict]:
@@ -102,9 +107,8 @@ class Sources:
                     continue
                 if kind == "moneyline" and code in _odds and time.time() - _odds[code][0] < ODDS_TTL:
                     lg = LEAGUES[code]
-                    games = compare(games, _odds[code][1], three_way=lg.three_way,
-                                    min_edge=self.settings.picks_min_edge, fee_rate=self.settings.kalshi_fee_rate,
-                                    now=self.now()).board
+                    games = compare(games, _odds[code][1], three_way=lg.three_way, now=self.now(),
+                                    **self.compare_options()).board
                 loaded.games.extend(games)
         return loaded
 
@@ -126,6 +130,5 @@ class Sources:
                 odds = oc.moneylines(lg.odds_sport)
             hit = (now, odds.events, odds.requests_remaining)
             _odds[league] = hit
-        result = compare(games, hit[1], three_way=lg.three_way, min_edge=s.picks_min_edge,
-                         fee_rate=s.kalshi_fee_rate, now=self.now())
+        result = compare(games, hit[1], three_way=lg.three_way, now=self.now(), **self.compare_options())
         return result, hit[2], hit[0]

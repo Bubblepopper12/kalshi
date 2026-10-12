@@ -133,6 +133,13 @@ class KalshiReadOnlyClient:
     def market(self, ticker: str) -> dict:
         return self.get(f"/markets/{ticker}").get("market") or {}
 
+    def candlesticks(self, series_ticker: str, ticker: str, start_ts: int, end_ts: int,
+                     period_minutes: int = 60) -> list[dict]:
+        """Price history for one market: one candle per period (1, 60 or 1440 minutes)."""
+        data = self.get(f"/series/{series_ticker}/markets/{ticker}/candlesticks",
+                        {"start_ts": int(start_ts), "end_ts": int(end_ts), "period_interval": period_minutes})
+        return data.get("candlesticks") or []
+
     def orderbook(self, ticker: str, depth: int | None = None) -> "OrderBook":
         data = self.get(f"/markets/{ticker}/orderbook", {"depth": depth})
         return OrderBook.from_api(data)

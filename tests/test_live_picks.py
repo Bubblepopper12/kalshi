@@ -138,3 +138,15 @@ def test_started_games_stay_on_the_board():
     oe = odds_event("Philadelphia Eagles", "Jacksonville Jaguars", [(-200, 170), (-190, 160)])
     r = build_picks([ev], [oe], three_way=False, now=datetime(2026, 10, 18, 18, tzinfo=timezone.utc))
     assert r.in_progress == 1 and len(r.board) == 1 and r.picks == [] and r.board[0].starts is not None
+
+
+def test_longshots_need_a_bigger_edge():
+    # Jacksonville at 12c; books say ~18% -> about 5-6 points of edge: enough normally, not for a longshot.
+    ev = kalshi_event("26OCT18JACPHI", "Jacksonville at Philadelphia", ["Jacksonville", "Philadelphia"], [0.12, 0.90])
+    oe = odds_event("Philadelphia Eagles", "Jacksonville Jaguars", [(-500, 420), (-480, 400), (-520, 440)])
+    r = build_picks([ev], [oe], three_way=False, now=NOW)
+    jac = [p for p in r.picks + r.near if p.outcome == "Jacksonville wins"][0]
+    assert 0.03 < jac.edge < 0.08 and jac in r.near and jac not in r.picks
+    assert any("Longshot" in n for n in jac.notes) and jac.strength != "Strong"
+    loose = build_picks([ev], [oe], three_way=False, now=NOW, longshot_edge=0.03)
+    assert [p.outcome for p in loose.picks] == ["Jacksonville wins"]

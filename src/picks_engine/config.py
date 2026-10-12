@@ -37,11 +37,15 @@ class Settings:
     max_price: float = 0.95
     ticket_ttl_minutes: int = 30
     order_expiry_minutes: int = 15
+    patient_expiry_minutes: int = 60  # patient (below-ask) offers wait longer for a seller
 
     # Picks: sportsbook prices (The Odds API) compared with Kalshi.
     odds_api_key: str | None = None
     odds_bookmakers: str | None = None
     picks_min_edge: float = 0.03
+    picks_longshot_price: float = 0.15  # contracts cheaper than this need picks_longshot_edge
+    picks_longshot_edge: float = 0.08
+    kalshi_maker_fee_rate: float = 0.0175  # resting (patient) orders on sports games pay 1/4 of the taker rate
 
     @property
     def trading_keys_set(self) -> bool:
@@ -71,7 +75,11 @@ class Settings:
             max_price=float(env.get("PICKS_MAX_PRICE", cls.max_price)),
             ticket_ttl_minutes=int(env.get("PICKS_TICKET_TTL_MINUTES", cls.ticket_ttl_minutes)),
             order_expiry_minutes=int(env.get("PICKS_ORDER_EXPIRY_MINUTES", cls.order_expiry_minutes)),
+            patient_expiry_minutes=int(env.get("PICKS_PATIENT_EXPIRY_MINUTES", cls.patient_expiry_minutes)),
             odds_api_key=env.get("ODDS_API_KEY") or None,
             odds_bookmakers=env.get("ODDS_BOOKMAKERS") or None,
             picks_min_edge=float(env.get("PICKS_MIN_EDGE", cls.picks_min_edge)),
+            picks_longshot_price=float(env.get("PICKS_LONGSHOT_PRICE", cls.picks_longshot_price)),
+            picks_longshot_edge=float(env.get("PICKS_LONGSHOT_EDGE", cls.picks_longshot_edge)),
+            kalshi_maker_fee_rate=float(env.get("KALSHI_MAKER_FEE_RATE", cls.kalshi_maker_fee_rate)),
         )

@@ -165,7 +165,7 @@ def test_full_approval_flow(web, exchange):
     login(web)
     r = review(web)
     assert "Review your bet" in r.text and "real money" in r.text and exchange.posts == []
-    assert "You pay at most</dt><dd>$1.12" in r.text  # 2 x 54c + fee 0.07 x 2 x .54 x .46 = 3.5c -> 4c
+    assert "You pay</dt><dd>$1.12" in r.text  # 2 x 54c + fee 0.07 x 2 x .54 x .46 = 3.5c -> 4c
     assert "You get $2.00 back (profit $0.88)" in r.text and "You lose $1.12" in r.text
     token = token_from(r.text)
 
@@ -373,3 +373,36 @@ def test_in_progress_games_are_listed_not_compared(env, exchange, fake, monkeypa
     login(web)
     r = web.get("/")
     assert "1 already started" in r.text and "in progress" in r.text and "No strong picks" in r.text
+
+
+def test_patient_price_rules():
+    from decimal import Decimal as D
+    from picks_engine.web.views import patient_price
+    assert patient_price(D("0.55"), D("0.54")) is None  # 1c spread: nothing to save
+    assert patient_price(D("0.58"), D("0.55")) == 57  # tight book: one cent under the ask
+    assert patient_price(D("0.40"), D("0.14")) == 27  # wide book: halfway
+    assert patient_price(None, D("0.10")) is None
+
+
+def test_patient_order_flow(web, exchange, fake):
+    for m in fake.markets["KXNFLGAME"]:
+        if m["ticker"] == TICKER:
+            m.update(yes_bid=50, yes_ask=55)
+    login(web)
+    r = web.get(f"/bet?ticker={TICKER}&side=yes")
+    assert "Buy now at 55¢" in r.text and "Patient: offer 53¢ and wait" in r.text and "Saves 2¢" in r.text
+    r = web.post("/bet", data={"ticker": TICKER, "side": "yes", "price": "53", "contracts": "10", "mode": "patient"})
+    assert "Patient offer" in r.text and "60 minutes" in r.text
+    assert "You pay</dt><dd>$5.35" in r.text  # 10 x 53c + maker fee 0.0175 x 10 x .53 x .47 = 4.4c -> 5c
+    before = time.time()
+    r = web.post("/send", data={"token": token_from(r.text), "approve": "yes"})
+    assert "Waiting for a seller" in r.text and "60 minutes" in r.text
+    sent = exchange.posts[-1]
+    assert sent["yes_price"] == 53 and sent["count"] == 10
+    assert 55 * 60 <= sent["expiration_ts"] - before <= 61 * 60
+
+
+def test_no_patient_option_on_tight_books(web):
+    login(web)
+    r = web.get(f"/bet?ticker={TICKER}&side=yes")  # fake market: 54c bid, 55c ask
+    assert "Patient offer not available" in r.text

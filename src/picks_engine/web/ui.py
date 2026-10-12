@@ -60,7 +60,7 @@ form.stack{display:grid;gap:14px;max-width:440px}
 label{display:grid;gap:6px;font-weight:700}
 input,select{font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 label.check{display:flex;gap:12px;align-items:flex-start;font-weight:700}
-label.check input{width:24px;height:24px;margin-top:2px}
+label.check input{width:24px;height:24px;margin-top:2px;flex:none;accent-color:var(--accent)}
 details summary{cursor:pointer;color:var(--muted);font-weight:600}
 code{font-size:13px;word-break:break-all;color:var(--muted)}
 header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;margin:0 0 12px;

@@ -34,6 +34,12 @@ SHARP_BOOKS = ("pinnacle",)
 STRONG_EDGE = 0.05  # "Strong" needs at least this much edge (or min_edge, if higher)
 STALE_AFTER = timedelta(minutes=60)
 THIN_GAP = Decimal("0.10")
+# Favorite-longshot bias: across 300,000+ Kalshi contracts, cheap contracts won less often than their
+# price implied (VoxEU/CEPR, "The economics of Kalshi"). So longshots need a bigger edge to count.
+LONGSHOT_PRICE = Decimal("0.15")
+LONGSHOT_EDGE = 0.08
+LONGSHOT_NOTE = ("Longshot: research on 300,000+ Kalshi contracts found cheap contracts win less often "
+                 "than their price suggests, so this one needed a bigger edge to make the list.")
 
 
 @dataclass
@@ -168,12 +174,14 @@ def find_game(game: Game, odds_events: list[dict]) -> tuple[dict, dict[str, str]
     return found[0] if len(found) == 1 else None
 
 
-def judge(pick: Pick, min_edge: float, now: datetime) -> None:
-    """Strength label and plain-language cautions."""
+def judge(pick: Pick, min_edge: float, now: datetime, longshot_price: Decimal = LONGSHOT_PRICE) -> None:
+    """Strength label and plain-language cautions. min_edge is the bar this pick had to clear."""
     c, g = pick.choice, pick.game
     cost = float(c.cost or 0)
     sharp_ok = c.pinnacle is not None and c.pinnacle - cost >= 0.01
-    if pick.edge >= max(min_edge, STRONG_EDGE) and len(c.books) >= 3 and sharp_ok and not g.stretched:
+    longshot = c.yes_ask is not None and c.yes_ask < longshot_price
+    if (pick.edge >= max(min_edge, STRONG_EDGE) and len(c.books) >= 3 and sharp_ok and not g.stretched
+            and not longshot):
         pick.strength = "Strong"
     elif pick.edge >= min_edge:
         pick.strength = "Good"
@@ -191,10 +199,13 @@ def judge(pick: Pick, min_edge: float, now: datetime) -> None:
         pick.notes.append("Few people are trading this on Kalshi yet (big gap between buy and sell prices).")
     if pick.odds_updated and now - pick.odds_updated > STALE_AFTER:
         pick.notes.append("Sportsbook prices are over an hour old.")
+    if longshot:
+        pick.notes.append(LONGSHOT_NOTE)
 
 
 def compare(games: list[Game], odds_events: list[dict], *, three_way: bool, min_edge: float = 0.03,
-            fee_rate: float = 0.07, fee_contracts: int = 10, now: datetime | None = None) -> PicksResult:
+            fee_rate: float = 0.07, fee_contracts: int = 10, now: datetime | None = None,
+            longshot_price: float = float(LONGSHOT_PRICE), longshot_edge: float = LONGSHOT_EDGE) -> PicksResult:
     now = now or datetime.now(timezone.utc)
     picks, near, board, unmatched = [], [], [], []
     checked = matched = live = 0
@@ -226,9 +237,11 @@ def compare(games: list[Game], odds_events: list[dict], *, three_way: bool, min_
             c.book, c.books, c.book_low, c.book_high, c.pinnacle = view.fair, view.books, view.low, view.high, view.pinnacle
             c.edge = view.fair - float(c.yes_ask + c.fee)
             if c.edge > 0:
+                lp = Decimal(str(longshot_price))
+                bar = max(min_edge, longshot_edge) if c.yes_ask < lp else min_edge
                 p = Pick(game=g, choice=c, odds_updated=view.updated)
-                judge(p, min_edge, now)
-                (picks if c.edge >= min_edge else near).append(p)
+                judge(p, bar, now, lp)
+                (picks if c.edge >= bar else near).append(p)
         board.append(g)
     picks.sort(key=lambda p: p.edge, reverse=True)
     near.sort(key=lambda p: p.edge, reverse=True)
@@ -237,10 +250,12 @@ def compare(games: list[Game], odds_events: list[dict], *, three_way: bool, min_
 
 def build_picks(kalshi_events: list[dict], odds_events: list[dict], *, three_way: bool, league: str = "",
                 min_edge: float = 0.03, fee_rate: float = 0.07, fee_contracts: int = 10,
-                now: datetime | None = None) -> PicksResult:
+                now: datetime | None = None, longshot_price: float = float(LONGSHOT_PRICE),
+                longshot_edge: float = LONGSHOT_EDGE) -> PicksResult:
     games = games_from_events(kalshi_events, league, "moneyline")
     return compare(games, odds_events, three_way=three_way, min_edge=min_edge, fee_rate=fee_rate,
-                   fee_contracts=fee_contracts, now=now)
+                   fee_contracts=fee_contracts, now=now, longshot_price=longshot_price,
+                   longshot_edge=longshot_edge)
 
 
 def size(pick: Pick, cash: Decimal | None, max_order: float, kelly_fraction: float = 0.25) -> None:

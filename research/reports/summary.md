@@ -43,7 +43,7 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## MLS
 
-**Too few cheap Kalshi prices to tell yet.**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 27 times in 1,557 prices).**
 
 - Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1557 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 27 bets, 14 won, +3.9% per bet after fees.
@@ -88,21 +88,21 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## All leagues together
 
-9,277 Kalshi markets from 4,308 games (NFL, College football / CFP, NBA, Premier League, Champions League).
+11,068 Kalshi markets from 4,905 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS).
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
-| 0–10¢ | 638 | 5% | 8% | +2.8% |
-| 10–20¢ | 907 | 15% | 15% | -1.3% |
-| 20–30¢ | 1503 | 25% | 25% | -0.9% |
-| 30–40¢ | 1150 | 34% | 35% | -0.8% |
-| 40–50¢ | 1108 | 44% | 45% | -1.3% |
-| 50–60¢ | 970 | 55% | 52% | -4.6% |
-| 60–70¢ | 1019 | 64% | 61% | -4.7% |
-| 70–80¢ | 816 | 74% | 74% | -2.2% |
-| 80–90¢ | 637 | 84% | 83% | -2.5% |
+| 0–10¢ | 641 | 5% | 8% | +2.7% |
+| 10–20¢ | 1083 | 15% | 15% | -1.0% |
+| 20–30¢ | 2266 | 25% | 25% | -1.0% |
+| 30–40¢ | 1445 | 34% | 35% | -1.4% |
+| 40–50¢ | 1361 | 44% | 44% | -1.7% |
+| 50–60¢ | 1139 | 55% | 52% | -4.9% |
+| 60–70¢ | 1111 | 64% | 62% | -4.3% |
+| 70–80¢ | 855 | 74% | 73% | -2.5% |
+| 80–90¢ | 638 | 84% | 83% | -2.5% |
 | 90–100¢ | 529 | 95% | 96% | +1.2% |
 
-Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 3 bets, 2 won, +36.0% per bet after fees.
+Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 30 bets, 16 won, +7.1% per bet after fees.
 
 Small samples swing a lot: treat fewer than ~200 bets as a hint, not proof. Past results don't promise future ones.

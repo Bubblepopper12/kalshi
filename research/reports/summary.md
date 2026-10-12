@@ -88,20 +88,20 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## All leagues together
 
-904 Kalshi markets from 452 games (NFL).
+4,272 Kalshi markets from 2,174 games (NFL, College football / CFP).
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
-| 0–10¢ | 2 | 1% | 50% | +48.9% |
-| 10–20¢ | 43 | 15% | 5% | -10.9% |
-| 20–30¢ | 91 | 25% | 27% | +1.2% |
-| 30–40¢ | 140 | 35% | 43% | +6.1% |
-| 40–50¢ | 166 | 44% | 46% | +0.4% |
-| 50–60¢ | 147 | 55% | 49% | -7.9% |
-| 60–70¢ | 152 | 64% | 60% | -5.5% |
-| 70–80¢ | 108 | 74% | 70% | -5.1% |
-| 80–90¢ | 47 | 84% | 85% | -0.2% |
-| 90–100¢ | 8 | 90% | 100% | +9.0% |
+| 0–10¢ | 504 | 4% | 9% | +4.2% |
+| 10–20¢ | 332 | 15% | 13% | -2.8% |
+| 20–30¢ | 397 | 25% | 26% | -0.2% |
+| 30–40¢ | 464 | 35% | 36% | -0.1% |
+| 40–50¢ | 473 | 44% | 44% | -2.3% |
+| 50–60¢ | 428 | 55% | 54% | -3.3% |
+| 60–70¢ | 472 | 64% | 61% | -5.1% |
+| 70–80¢ | 425 | 74% | 74% | -2.2% |
+| 80–90¢ | 350 | 84% | 85% | -0.9% |
+| 90–100¢ | 427 | 95% | 96% | +0.3% |
 
 Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 3 bets, 2 won, +36.0% per bet after fees.
 

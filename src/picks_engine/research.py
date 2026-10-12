@@ -44,6 +44,9 @@ class LeagueSummary:
     verdict: str = ""
     points: list[str] = field(default_factory=list)
     error: str = ""
+    updated: str = ""  # when this league was last run (ISO, UTC)
+    buckets: list[list[float]] = field(default_factory=list)  # [low, n, price_sum, wins, pnl] for pooling
+    rule3: list[float] = field(default_factory=list)  # [bets, wins, pnl] buying 3+ points under the books
 
 
 def _pct(x: float) -> str:
@@ -52,7 +55,11 @@ def _pct(x: float) -> str:
 
 def judge(code: str, report: history.Report) -> LeagueSummary:
     """Turn one league's report into a short verdict anyone can read."""
-    out = LeagueSummary(code, LEAGUES[code].name, report.markets, report.games, report.source)
+    out = LeagueSummary(code, LEAGUES[code].name, report.markets, report.games, report.source,
+                        buckets=[[b.low, b.n, b.price_sum, b.wins, b.pnl] for b in report.buckets])
+    if report.comparison is not None:
+        r3 = report.comparison.rule(3)
+        out.rule3 = [r3.bets, r3.wins, r3.pnl]
     if not report.markets:
         out.tag, out.verdict = "few", "No finished games on Kalshi in this period yet."
         return out
@@ -102,23 +109,28 @@ def judge(code: str, report: history.Report) -> LeagueSummary:
     return out
 
 
-def pooled(reports: list[history.Report]) -> list[str]:
-    """All leagues together: bigger samples, so these numbers mean more than any single league's."""
-    if not reports:
+def pooled(leagues: list[LeagueSummary]) -> list[str]:
+    """All leagues together: bigger samples, so these numbers mean more than any single league's.
+
+    Leagues that failed or whose numbers need checking are left out.
+    """
+    used = [s for s in leagues if s.buckets and s.tag not in ("error", "check")]
+    if not used:
         return []
     buckets = [history.Bucket(lo, lo + 10) for lo in range(0, 100, 10)]
-    for r in reports:
-        for b, rb in zip(buckets, r.buckets):
-            b.n += rb.n
-            b.price_sum += rb.price_sum
-            b.wins += rb.wins
-            b.pnl += rb.pnl
+    for s in used:
+        for b, (_, n, price_sum, wins, pnl) in zip(buckets, s.buckets):
+            b.n += int(n)
+            b.price_sum += price_sum
+            b.wins += int(wins)
+            b.pnl += pnl
     lines = ["## All leagues together", "",
-             f"{sum(r.markets for r in reports)} Kalshi markets from {sum(r.games for r in reports)} games.", "",
+             f"{sum(s.markets for s in used):,} Kalshi markets from {sum(s.games for s in used):,} games "
+             f"({', '.join(s.name for s in used)}).", "",
              "| Price | Markets | Average price | Actually won | Return per bet |",
              "| --- | --- | --- | --- | --- |"] + [b.line() for b in buckets] + [""]
-    rules = [r.comparison.rule(3) for r in reports if r.comparison]
-    n, wins, pnl = sum(x.bets for x in rules), sum(x.wins for x in rules), sum(x.pnl for x in rules)
+    rules = [s.rule3 for s in used if s.rule3]
+    n, wins, pnl = int(sum(r[0] for r in rules)), int(sum(r[1] for r in rules)), sum(r[2] for r in rules)
     if rules:
         lines += [f"Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, "
                   f"in every league with sportsbook data: {n} bets, {wins} won, "
@@ -166,10 +178,12 @@ def closing_lines(code: str, since: datetime, fetch: Callable[[str], str], progr
 
 def run(client: KalshiReadOnlyClient, leagues: list[str], since: datetime, reports: Path = REPORTS,
         data: Path = DATA, fetch: Callable[[str], str] = _fetch, fee_rate: float = 0.07,
-        progress=print, reuse_data: bool = False, update: bool = True) -> list[LeagueSummary]:
+        progress=print, reuse_data: bool = False, update: bool = True,
+        on_league: Callable[[str], None] | None = None) -> list[LeagueSummary]:
+    """Run the leagues one by one. Results merge into summary.json, so leagues not run this time keep
+    their last results, and `on_league` (e.g. saving to GitHub) can publish each league as it finishes."""
     reports.mkdir(parents=True, exist_ok=True)
     results: list[LeagueSummary] = []
-    done: list[history.Report] = []
     for code in leagues:
         name = LEAGUES[code].name
         progress(f"\n=== {name} ===")
@@ -181,18 +195,37 @@ def run(client: KalshiReadOnlyClient, leagues: list[str], since: datetime, repor
             msg = str(exc) if isinstance(exc, SystemExit) else f"couldn't reach Kalshi ({exc!r})"
             progress(f"  skipped: {msg}")
             results.append(LeagueSummary(code, name, tag="error", error=f"Not loaded: {msg}"))
-            continue
-        report = history.analyze(path, code, fee_rate=fee_rate, **closing_lines(code, since, fetch, progress))
-        (reports / f"{code}.md").write_text(report.markdown(code))
-        done.append(report)
-        results.append(judge(code, report))
-        progress(f"  {results[-1].verdict}")
-    pool = pooled(done)
-    (reports / "summary.md").write_text(_summary_markdown(results, pool, since))
+        else:
+            report = history.analyze(path, code, fee_rate=fee_rate, **closing_lines(code, since, fetch, progress))
+            (reports / f"{code}.md").write_text(report.markdown(code))
+            results.append(judge(code, report))
+            progress(f"  {results[-1].verdict}")
+        results[-1].updated = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        save_summary(reports, results, since)
+        if on_league:
+            on_league(code)
+    return results
+
+
+def load_summary(reports: Path) -> dict[str, LeagueSummary]:
+    try:
+        data = json.loads((reports / "summary.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    known = set(LeagueSummary.__dataclass_fields__)
+    return {x["code"]: LeagueSummary(**{k: v for k, v in x.items() if k in known})
+            for x in data.get("leagues") or [] if x.get("code") in LEAGUES}
+
+
+def save_summary(reports: Path, fresh: list[LeagueSummary], since: datetime) -> None:
+    """Merge this run's leagues into the saved summary (league order as in LEAGUES)."""
+    merged = load_summary(reports) | {s.code: s for s in fresh}
+    ordered = [merged[c] for c in LEAGUES if c in merged]
+    pool = pooled(ordered)
+    (reports / "summary.md").write_text(_summary_markdown(ordered, pool, since))
     (reports / "summary.json").write_text(json.dumps({
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "since": since.date().isoformat(),
-        "leagues": [asdict(r) for r in results],
+        "leagues": [asdict(r) for r in ordered],
         "pooled": pool,
     }, indent=2))
-    return results

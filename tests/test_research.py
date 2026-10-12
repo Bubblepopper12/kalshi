@@ -96,7 +96,8 @@ def test_research_end_to_end(tmp_path):
     assert "3 Kalshi prices matched" in text
     assert "Does Kalshi lag earlier in the week?" in text  # kickoff known from the UK time
     summary = json.loads((tmp_path / "reports" / "summary.json").read_text())
-    assert [x["code"] for x in summary["leagues"]] == ["EPL", "NBA"]
+    assert [x["code"] for x in summary["leagues"]] == ["NBA", "EPL"]  # league order, not run order
+    assert summary["leagues"][1]["buckets"] and summary["leagues"][1]["updated"]
     assert "All leagues together" in (tmp_path / "reports" / "summary.md").read_text()
 
 
@@ -117,3 +118,24 @@ def test_judge_wording():
     assert research.judge("EPL", rep).tag == "none"
     rep.comparison = None
     assert research.judge("EPL", rep).tag == "kalshi-only"
+
+
+def test_each_league_is_saved_as_it_finishes_and_merged(tmp_path):
+    published = []
+    reports = tmp_path / "reports"
+
+    def fetch(url):
+        if url.endswith("2627/E0.csv"):
+            return FOOTBALL_DATA
+        raise httpx.HTTPStatusError("missing", request=httpx.Request("GET", url), response=httpx.Response(404))
+
+    def saved_codes():
+        return [x["code"] for x in json.loads((reports / "summary.json").read_text())["leagues"]]
+
+    since = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    research.run(client(), ["NBA"], since, reports=reports, data=tmp_path / "data", fetch=fetch,
+                 progress=lambda *_: None, on_league=lambda c: published.append((c, saved_codes())))
+    research.run(client(), ["EPL"], since, reports=reports, data=tmp_path / "data", fetch=fetch,
+                 progress=lambda *_: None, on_league=lambda c: published.append((c, saved_codes())))
+    assert published == [("NBA", ["NBA"]), ("EPL", ["NBA", "EPL"])]  # the NBA result is kept
+    assert "Premier League" in (reports / "summary.md").read_text()

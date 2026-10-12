@@ -269,7 +269,7 @@ def cmd_history(args, settings):
     if args.history_command == "download":
         since = datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc)
         with _client(settings) as client:
-            rows = history.download(client, league, since, path)
+            rows = history.download(client, league, since, path, progress=lambda m: print(m, flush=True))
         print(f"Saved {rows} hourly prices to {path}. Next: picks history analyze {league}")
         return
     if not path.exists():

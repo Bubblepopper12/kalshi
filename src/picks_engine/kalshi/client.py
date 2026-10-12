@@ -122,12 +122,14 @@ class KalshiReadOnlyClient:
         )
 
     def markets(
-        self, series_ticker: str | None = None, event_ticker: str | None = None, status: str | None = "open"
+        self, series_ticker: str | None = None, event_ticker: str | None = None, status: str | None = "open",
+        min_close_ts: int | None = None,
     ) -> Iterator[dict]:
         return self.paginate(
             "/markets",
             "markets",
-            {"series_ticker": series_ticker, "event_ticker": event_ticker, "status": status, "limit": 1000},
+            {"series_ticker": series_ticker, "event_ticker": event_ticker, "status": status, "limit": 1000,
+             "min_close_ts": min_close_ts},
         )
 
     def market(self, ticker: str) -> dict:

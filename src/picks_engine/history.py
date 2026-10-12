@@ -80,16 +80,19 @@ def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Pa
              period_minutes: int = 60, progress=print) -> int:
     """Write hourly price history of every settled winner market since `since`. Returns rows written."""
     lg = LEAGUES[league]
+    progress(f"Asking Kalshi for {lg.name} game markets...")
     series = game_series(lg, client.series(category="Sports"), "moneyline")
     if not series:
         raise SystemExit(f"Kalshi lists no game-winner series for {lg.name}.")
+    progress(f"Found {', '.join(s['ticker'] for s in series)}. Listing finished games since {since:%b %-d}...")
     rows = 0
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="") as fh:
         w = csv.DictWriter(fh, COLUMNS)
         w.writeheader()
         for sr in series:
-            markets = [m for m in client.markets(series_ticker=sr["ticker"], status="settled")
+            markets = [m for m in client.markets(series_ticker=sr["ticker"], status="settled",
+                                                 min_close_ts=int(since.timestamp()))
                        if (_ts(m.get("close_time")) or 0) >= since.timestamp() and m.get("result") in ("yes", "no")]
             progress(f"{sr['ticker']}: {len(markets)} finished markets since {since:%b %-d}")
             for i, m in enumerate(markets, 1):
@@ -108,8 +111,8 @@ def download(client: KalshiReadOnlyClient, league: str, since: datetime, out: Pa
                                 "ts": c.get("end_period_ts"), "yes_bid": bid, "yes_ask": ask,
                                 "last_price": _close(c, "price"), "volume": c.get("volume")})
                     rows += 1
-                if i % 25 == 0:
-                    progress(f"  {i}/{len(markets)} markets")
+                if i % 10 == 0 or i == len(markets):
+                    progress(f"  {i}/{len(markets)} markets downloaded")
     return rows
 
 

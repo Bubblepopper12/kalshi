@@ -111,6 +111,8 @@ def test_judge_wording():
     s = research.judge("EPL", rep)
     assert s.tag == "edge" and "about as accurate" in s.points[0]
     assert any("Avoid them" in p for p in s.points)
+    rep.comparison.rules[1] = history.Rule("3+", 250, 200, 60)  # +24% per bet: not believable
+    assert research.judge("EPL", rep).tag == "check"
     rep.comparison.rules[1] = history.Rule("3+", 250, 100, -20)
     assert research.judge("EPL", rep).tag == "none"
     rep.comparison = None

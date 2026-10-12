@@ -30,6 +30,7 @@ REPORTS = Path("research/reports")
 DATA = Path("research/data")
 MIN_BETS = 30  # fewer bets than this: too few to say anything
 SOLID_BETS = 200  # this many before calling anything an edge
+TOO_GOOD = 0.15  # +15% per bet against closing lines is not a realistic edge: flag it as a likely data problem
 
 
 @dataclass
@@ -39,7 +40,7 @@ class LeagueSummary:
     markets: int = 0
     games: int = 0
     source: str = ""
-    tag: str = ""  # edge | watch | none | few | kalshi-only | error
+    tag: str = ""  # edge | watch | none | few | check | kalshi-only | error
     verdict: str = ""
     points: list[str] = field(default_factory=list)
     error: str = ""
@@ -70,7 +71,11 @@ def judge(code: str, report: history.Report) -> LeagueSummary:
                               f"{r3.wins} won, {_pct(r3.per_bet)} per bet after fees.")
         else:
             out.points.append("Kalshi was never 3+ points cheaper than the books before a game.")
-        if r3.bets >= SOLID_BETS and r3.per_bet > 0.02:
+        if r3.bets >= MIN_BETS and r3.per_bet > TOO_GOOD:
+            out.tag = "check"
+            out.verdict = ("Needs checking: the return looks too good to be true, which usually means a data "
+                           "problem rather than real money. Not trusted until it's explained.")
+        elif r3.bets >= SOLID_BETS and r3.per_bet > 0.02:
             out.tag, out.verdict = "edge", "Edge found: buying when Kalshi is cheaper than the books made money."
         elif r3.bets < MIN_BETS:
             out.tag, out.verdict = "few", "Too few cheap Kalshi prices to tell yet."

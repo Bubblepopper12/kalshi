@@ -64,7 +64,7 @@ MAX_GAMES = 300
 MAX_ALL_BOARD = 60
 RESEARCH_DIR = Path(os.environ.get("RESEARCH_DIR") or Path(__file__).resolve().parents[3] / "research" / "reports")
 TAGS = {"edge": ("pos", "Edge found"), "watch": ("lean", "Worth watching"), "none": ("neg", "No edge"),
-        "few": ("warn", "Too few games"), "kalshi-only": ("neg", "Kalshi-only test"), "error": ("bad", "Not loaded")}
+        "few": ("warn", "Too few games"), "check": ("warn", "Needs checking"), "kalshi-only": ("neg", "Kalshi-only test"), "error": ("bad", "Not loaded")}
 TRADING_ERRORS = (KalshiAPIError, TradingNotConfigured, ValueError, PermissionError, httpx.HTTPError)
 
 ORDER_STATUS = {

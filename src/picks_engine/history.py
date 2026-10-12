@@ -68,12 +68,18 @@ def _close(candle: dict, name: str) -> Decimal | None:
         if part.get("close_dollars") not in (None, ""):
             return Decimal(str(part["close_dollars"]))
         if part.get("close") not in (None, ""):
-            return Decimal(str(part["close"])) / 100
+            return _cents_or_dollars(part["close"])
     if candle.get(f"{name}_close_dollars") not in (None, ""):
         return Decimal(str(candle[f"{name}_close_dollars"]))
     if candle.get(f"{name}_close") not in (None, ""):
-        return Decimal(str(candle[f"{name}_close"])) / 100
+        return _cents_or_dollars(candle[f"{name}_close"])
     return None
+
+
+def _cents_or_dollars(value) -> Decimal:
+    """Whole numbers are cents (55); a decimal fraction is already dollars (0.55 or "0.5500")."""
+    d = Decimal(str(value))
+    return d if d != d.to_integral_value() and d < 1 else d / 100
 
 
 # ---------------------------------------------------------------- download

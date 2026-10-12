@@ -83,6 +83,9 @@ def test_candle_price_formats():
     assert history._close({"yes_ask": {"close_dollars": "0.5550"}}, "yes_ask") == Decimal("0.5550")
     assert history._close({"yes_ask_close": 40}, "yes_ask") == Decimal("0.40")
     assert history._close({}, "yes_ask") is None
+    assert history._close({"yes_ask": {"close": "0.5500"}}, "yes_ask") == Decimal("0.55")  # dollars, archive style
+    assert history._close({"yes_ask": {"close": 0.07}}, "yes_ask") == Decimal("0.07")
+    assert history._close({"yes_ask": {"close": "7"}}, "yes_ask") == Decimal("0.07")
 
 
 def test_pregame_snapshot_uses_nfl_kickoff(downloaded):

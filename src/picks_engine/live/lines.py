@@ -171,8 +171,11 @@ def _plus(line: float) -> str:
 
 
 def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: dict, model, lines: MainLines,
-                  fee_rate: float = 0.07, fee_contracts: int = 10) -> list[Bet]:
-    """Both sides of every readable line market, priced by the model."""
+                  fee_rate: float = 0.07, fee_contracts: int = 10, code_sides: dict[str, str] | None = None) -> list[Bet]:
+    """Both sides of every readable line market, priced by the model.
+
+    code_sides maps Kalshi's team codes to "home"/"away" (from the matched winner market: ...-SGE is
+    Frankfurt); a spread ticker ends in the same code (...-SGE3), which beats matching names."""
     if model is None:
         return []
     home, away = oe.get("home_team", ""), oe.get("away_team", "")
@@ -191,7 +194,9 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
         exact, p_yes = True, None
         if kind == "spread":
             team = info["team"]
-            sides = [s for s, n in (("home", home), ("away", away)) if name_matches(team, n) or name_matches(n, team)]
+            code = re.sub(r"\d+$", "", (m.get("ticker") or "").rsplit("-", 1)[-1])
+            sides = [code_sides[code]] if code_sides and code in code_sides else \
+                [s for s, n in (("home", home), ("away", away)) if name_matches(team, n) or name_matches(n, team)]
             if len(sides) != 1:
                 continue
             side, line = sides[0], info["line"]

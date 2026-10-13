@@ -251,11 +251,13 @@ class Sources:
                 winners = games_from_events(self.events(code, "moneyline"), code, "moneyline")
             except httpx.HTTPError:
                 return []
-            games: dict[str, dict] = {}  # Kalshi game code ("26OCT18DALPHI") -> sportsbook game
+            games: dict[str, tuple[dict, dict[str, str]]] = {}  # "26OCT18DALPHI" -> (sportsbook game, code sides)
             for g in winners:
                 found = find_game(g, hit[1])
                 if found and "-" in g.event_ticker:
-                    games[g.event_ticker.split("-", 1)[1]] = found[0]
+                    oe, mapping = found
+                    codes = {c.ticker.rsplit("-", 1)[-1]: mapping[c.name] for c in g.choices if c.name in mapping}
+                    games[g.event_ticker.split("-", 1)[1]] = (oe, codes)
             models: dict[str, tuple] = {}
             out: list[Bet] = []
             for kind in kinds:
@@ -265,14 +267,14 @@ class Sources:
                     continue
                 for ev in events:
                     key = (ev.get("event_ticker") or "").split("-", 1)[-1]
-                    oe = games.get(key)
-                    if oe is None:
+                    if key not in games:
                         continue
+                    oe, codes = games[key]
                     if key not in models:
                         models[key] = model_for(code, lg.sport, oe)
                     model, main = models[key]
                     for b in price_markets(ev.get("markets") or [], kind, code, lg.sport, oe, model, main,
-                                           fee_rate=self.settings.kalshi_fee_rate):
+                                           fee_rate=self.settings.kalshi_fee_rate, code_sides=codes):
                         if b.starts is not None and b.starts <= now:
                             continue
                         if judge_bet(b, min_edge):

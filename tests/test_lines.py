@@ -136,3 +136,13 @@ def test_picks_page_shows_totals_and_spreads(monkeypatch):
     assert 'data-kind="spread"' not in best
     with open(__import__("os").environ.get("SLIPS_HTML", "/dev/null"), "w") as fh:
         fh.write(r.text)
+
+
+def test_spread_team_found_by_ticker_code_when_names_differ():
+    oe = soccer_event()
+    model, main = model_for("BUNDESLIGA", "soccer", oe)
+    m = {"ticker": "KXBUNDESLIGASPREAD-26OCT18FCBBVB-FCB2", "yes_sub_title": "Die Roten wins by more than 1.5 goals",
+         "yes_ask": 50, "no_ask": 52}
+    assert price_markets([m], "spread", "BUNDESLIGA", "soccer", oe, model, main) == []  # a name the books don't use: no match
+    bets = price_markets([m], "spread", "BUNDESLIGA", "soccer", oe, model, main, code_sides={"FCB": "home"})
+    assert bets and bets[0].fair == pytest.approx(model.wins_by_more_than("home", 1.5))

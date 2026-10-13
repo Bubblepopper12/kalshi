@@ -26,6 +26,9 @@ MODEL_EDGE = 0.05  # model-priced lines need 5+ points (the model adds its own e
 LIQUID_SPREAD = Decimal("0.06")  # lines with a tighter buy/sell gap than this say where Kalshi really is
 LEVEL_FLOOR = 0.02  # disagreements smaller than this across a game's ladder are noise
 STRETCH = {"soccer": 1.0, "points": 4.0}  # lines further than this from the books' own are "far"
+# Leagues whose margin/total shape hasn't been checked against enough real results: only price lines this
+# close to the books' own (spread, total). The NFL uses real results (see pricing/football_margins.py).
+NEAR_ONLY = {"NBA": (4.0, 6.0), "CFB": (4.0, 6.0)}
 
 
 @dataclass
@@ -210,14 +213,20 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
             if sport != "soccer" and lines.spread is not None:
                 book = -lines.spread if side == "home" else lines.spread  # e.g. home -3.5 -> home wins by 3.5
                 exact = abs(line - book) <= 0.5
+                if league in NEAR_ONLY and abs(line - book) > NEAR_ONLY[league][0]:
+                    continue
             else:
                 exact = False
+                if league in NEAR_ONLY:
+                    continue
             far = sport != "soccer" and lines.spread is not None and abs(line - abs(lines.spread)) > STRETCH["points"]
         elif kind == "total":
             line = info["line"]
             p_yes = model.total_over(line)
             yes_txt, no_txt = f"Over {line:g} {unit}", f"Under {line:g} {unit}"
             exact = lines.total is not None and abs(line - lines.total) < 0.01
+            if league in NEAR_ONLY and (lines.total is None or abs(line - lines.total) > NEAR_ONLY[league][1]):
+                continue
             far = lines.total is not None and abs(line - lines.total) > STRETCH["soccer" if sport == "soccer" else "points"]
         else:  # btts
             if not isinstance(model, SoccerModel):

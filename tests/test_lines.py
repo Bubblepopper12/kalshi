@@ -209,3 +209,27 @@ def test_game_wide_disagreement_counts_against_the_edge():
                          "soccer", oe, model, main)
     single = next(b for b in lone if b.ticker == "T-2.5" and b.side == "yes")
     assert single.level_gap < 0.02  # one cheap line against an agreeing ladder: no penalty
+
+
+def test_nba_only_prices_lines_near_the_books():
+    oe = {"home_team": "Orlando Magic", "away_team": "Cleveland Cavaliers", "commence_time": "2026-10-20T23:00:00Z",
+          "bookmakers": [book(k, t, [
+              {"key": "h2h", "outcomes": [{"name": "Orlando Magic", "price": -200}, {"name": "Cleveland Cavaliers", "price": 170}]},
+              {"key": "spreads", "outcomes": [{"name": "Orlando Magic", "price": -110, "point": -5.5},
+                                              {"name": "Cleveland Cavaliers", "price": -110, "point": 5.5}]},
+              {"key": "totals", "outcomes": [{"name": "Over", "price": -110, "point": 214.5},
+                                             {"name": "Under", "price": -110, "point": 214.5}]}])
+              for k, t in (("pinnacle", "Pinnacle"), ("b2", "B2"), ("b3", "B3"))]}
+    model, main = model_for("NBA", "basketball", oe)
+    assert main.spread == -5.5 and main.total == 214.5
+    mk = lambda t, line: {"ticker": f"KXNBASPREAD-X-ORL{t}", "yes_sub_title": f"Orlando wins by over {line} points",
+                          "floor_strike": line, "yes_ask": 40, "no_ask": 62}  # noqa: E731
+    near = price_markets([mk(7, 7.5)], "spread", "NBA", "basketball", oe, model, main, code_sides={"ORL": "home"})
+    far = price_markets([mk(19, 18.5)], "spread", "NBA", "basketball", oe, model, main, code_sides={"ORL": "home"})
+    assert near and not far
+    exact = price_markets([mk(6, 5.5)], "spread", "NBA", "basketball", oe, model, main, code_sides={"ORL": "home"})
+    assert exact[0].exact and exact[0].fair == pytest.approx(0.5, abs=0.01)
+    tot = lambda line: {"ticker": f"T{line}", "yes_sub_title": f"Over {line} points", "floor_strike": line,  # noqa: E731
+                        "yes_ask": 50, "no_ask": 52}
+    assert price_markets([tot(218.5)], "total", "NBA", "basketball", oe, model, main)
+    assert not price_markets([tot(230.5)], "total", "NBA", "basketball", oe, model, main)

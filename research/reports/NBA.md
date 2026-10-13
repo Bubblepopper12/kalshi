@@ -1,6 +1,6 @@
-# Kalshi NBA history test (Oct 12, 2026)
+# Kalshi NBA history test (Oct 13, 2026)
 
-2794 finished winner markets, priced before each game.
+2802 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -11,10 +11,10 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | 0–10¢ | 56 | 7% | 4% | -3.5% |
 | 10–20¢ | 236 | 15% | 17% | +1.2% |
 | 20–30¢ | 288 | 25% | 23% | -3.4% |
-| 30–40¢ | 380 | 35% | 35% | -1.0% |
-| 40–50¢ | 408 | 44% | 48% | +1.6% |
-| 50–60¢ | 363 | 55% | 51% | -5.4% |
-| 60–70¢ | 406 | 64% | 61% | -4.9% |
+| 30–40¢ | 381 | 35% | 35% | -1.1% |
+| 40–50¢ | 410 | 44% | 48% | +1.6% |
+| 50–60¢ | 366 | 55% | 51% | -5.5% |
+| 60–70¢ | 408 | 64% | 61% | -4.7% |
 | 70–80¢ | 314 | 74% | 75% | -0.6% |
 | 80–90¢ | 250 | 84% | 80% | -5.4% |
 | 90–100¢ | 93 | 93% | 98% | +4.8% |

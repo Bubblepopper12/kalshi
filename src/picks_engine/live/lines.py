@@ -23,6 +23,8 @@ from .teams import name_matches
 
 KINDS = {"winner": "Winners", "spread": "Spreads", "total": "Totals", "btts": "Both teams score"}
 MODEL_EDGE = 0.05  # model-priced lines need 5+ points (the model adds its own error)
+LIQUID_SPREAD = Decimal("0.06")  # lines with a tighter buy/sell gap than this say where Kalshi really is
+LEVEL_FLOOR = 0.02  # disagreements smaller than this across a game's ladder are noise
 STRETCH = {"soccer": 1.0, "points": 4.0}  # lines further than this from the books' own are "far"
 
 
@@ -46,6 +48,7 @@ class Bet:
     contracts: int = 0
     stake: Decimal = Decimal(0)
     pinnacle: float | None = None
+    level_gap: float = 0.0  # how far the model sits above Kalshi on this side across the game's whole ladder
 
     @property
     def cost(self) -> Decimal:
@@ -185,6 +188,7 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
     starts = _parse(oe.get("commence_time"))
     unit = _goals(sport)
     out = []
+    gaps: list[float] = []  # model minus Kalshi's mid, YES side, on every liquid line of this game
     for m in markets:
         if (m.get("status") or "active") not in ("active", "open"):
             continue
@@ -223,6 +227,9 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
             exact, far = False, False
         if p_yes is None:
             continue
+        bid, ask_y = price_field(m, "yes_bid"), price_field(m, "yes_ask")
+        if bid is not None and ask_y is not None and 0 < bid <= ask_y < 1 and ask_y - bid <= LIQUID_SPREAD:
+            gaps.append(p_yes - float((bid + ask_y) / 2))
         for side, ask, fair, text in (("yes", price_field(m, "yes_ask"), p_yes, yes_txt),
                                       ("no", price_field(m, "no_ask"), 1 - p_yes, no_txt)):
             if ask is None or not Decimal("0.01") < ask < Decimal("0.99"):
@@ -235,6 +242,31 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
                 bet.notes.append(f"This line is far from the sportsbooks' own ({_book_line_text(kind, lines)}), "
                                  "so the model's price is rougher.")
             out.append(bet)
+    if len(gaps) >= 2:
+        level = statistics.median(gaps)
+        for b in out:
+            b.level_gap = level if b.side == "yes" else -level
+    return out
+
+
+def winner_no_bets(g, league: str, sport: str, fee_rate: float = 0.07, fee_contracts: int = 10) -> list[Bet]:
+    """NO on a winner market, priced from the sportsbooks: "Bayern doesn't win", "Not a draw"."""
+    from .teams import is_draw
+
+    out = []
+    names = [c.name for c in g.choices if not is_draw(c.name)]
+    for c in g.choices:
+        if c.book is None or c.no_ask is None or not Decimal("0.01") < c.no_ask < Decimal("0.99") or len(c.books) < 2:
+            continue
+        if is_draw(c.name):
+            text = "Not a draw (either team wins)"
+        else:
+            others = [n for n in names if n != c.name]
+            text = f"{c.name} doesn't win" + (f" (draw or {others[0]})" if sport == "soccer" and others else "")
+        fee = Decimal(str(fee_per_contract(float(c.no_ask), fee_contracts, fee_rate))).quantize(Decimal("0.0001"))
+        pin = None if c.pinnacle is None else 1 - c.pinnacle
+        out.append(Bet(league, g.title, g.starts, "winner", c.ticker, "no", text, c.no_ask, fee, 1 - c.book,
+                       f"Sportsbooks ({len(c.books)} books)", list(c.books), True, [], "Good", pinnacle=pin))
     return out
 
 
@@ -249,17 +281,25 @@ def _book_line_text(kind: str, lines: MainLines) -> str:
 def judge_bet(b: Bet, min_edge: float) -> bool:
     """Is it a pick? Sets strength and notes. Model lines need MODEL_EDGE; longshots need more."""
     need = min_edge if b.exact else max(min_edge, MODEL_EDGE)
+    penalty = b.level_gap if b.level_gap > LEVEL_FLOOR else 0.0
+    need += penalty
     longshot = b.ask < LONGSHOT_PRICE
     if longshot:
         need = max(need, LONGSHOT_EDGE)
     if b.edge < need:
         return False
-    if b.exact and b.edge >= 0.05 and len(b.books) >= 3 and not longshot and not b.notes:
+    sharp_ok = b.kind != "winner" or (b.pinnacle is not None and b.pinnacle - float(b.cost) >= 0.01)
+    if b.kind == "winner" and b.pinnacle is not None and b.pinnacle < float(b.cost):
+        b.notes.append("Pinnacle, the sharpest sportsbook, doesn't agree this is cheap.")
+    if b.exact and b.edge >= 0.05 and len(b.books) >= 3 and not longshot and not b.notes and sharp_ok:
         b.strength = "Strong"
     else:
         b.strength = "Good" if b.exact else "Model"
     if not b.exact:
         b.notes.append("Priced by the bot's model from the sportsbooks' main lines (they don't post this exact line).")
+    if penalty:
+        b.notes.append(f"Across this game's other lines, Kalshi sits about {penalty * 100:.0f} points below the model, "
+                       "so that much of the edge may be a different read of the game; it had to clear that too.")
     if len(b.books) < 3:
         b.notes.append(f"Only {len(b.books)} sportsbooks to build the price from.")
     if longshot:

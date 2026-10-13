@@ -25,7 +25,7 @@ from ..kalshi.client import KalshiReadOnlyClient
 from ..kalshi.leagues import LEAGUES, game_series
 from ..live.board import Game, games_from_events
 from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient, OddsAPIError
-from ..live.lines import Bet, judge_bet, model_for, price_markets
+from ..live.lines import Bet, judge_bet, model_for, price_markets, winner_no_bets
 from ..live.picks import PicksResult, compare, find_game
 
 SERIES_TTL = 600
@@ -252,6 +252,11 @@ class Sources:
             except httpx.HTTPError:
                 return []
             games: dict[str, tuple[dict, dict[str, str]]] = {}  # "26OCT18DALPHI" -> (sportsbook game, code sides)
+            out: list[Bet] = []
+            compared = compare(winners, hit[1], three_way=lg.three_way, now=now, **self.compare_options())
+            for g in compared.board:  # the NO side of winner markets: "X doesn't win", "Not a draw"
+                if g.matched and (g.starts is None or g.starts > now):
+                    out += winner_no_bets(g, code, lg.sport, self.settings.kalshi_fee_rate)
             for g in winners:
                 found = find_game(g, hit[1])
                 if found and "-" in g.event_ticker:
@@ -259,7 +264,6 @@ class Sources:
                     codes = {c.ticker.rsplit("-", 1)[-1]: mapping[c.name] for c in g.choices if c.name in mapping}
                     games[g.event_ticker.split("-", 1)[1]] = (oe, codes)
             models: dict[str, tuple] = {}
-            out: list[Bet] = []
             for kind in kinds:
                 try:
                     events = self.events(code, kind)
@@ -275,11 +279,9 @@ class Sources:
                     model, main = models[key]
                     for b in price_markets(ev.get("markets") or [], kind, code, lg.sport, oe, model, main,
                                            fee_rate=self.settings.kalshi_fee_rate, code_sides=codes):
-                        if b.starts is not None and b.starts <= now:
-                            continue
-                        if judge_bet(b, min_edge):
+                        if b.starts is None or b.starts > now:
                             out.append(b)
-            return out
+            return [b for b in out if judge_bet(b, min_edge)]
 
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
             bets = [b for chunk in pool.map(one, leagues) for b in chunk]

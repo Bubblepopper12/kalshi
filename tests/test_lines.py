@@ -146,3 +146,66 @@ def test_spread_team_found_by_ticker_code_when_names_differ():
     assert price_markets([m], "spread", "BUNDESLIGA", "soccer", oe, model, main) == []  # a name the books don't use: no match
     bets = price_markets([m], "spread", "BUNDESLIGA", "soccer", oe, model, main, code_sides={"FCB": "home"})
     assert bets and bets[0].fair == pytest.approx(model.wins_by_more_than("home", 1.5))
+
+
+def test_asian_totals_are_read_like_the_books_settle_them():
+    from picks_engine.pricing.models import fit_soccer
+
+    base = fit_soccer(0.45, 0.27, 0.28, 2.5, 0.55)
+    # The same game quoted on a whole line (refund on exactly 3) or a quarter line must give the same goals.
+    for line in (2.25, 2.75, 3.0, 3.25):
+        again = fit_soccer(0.45, 0.27, 0.28, line, base.book_over(line))
+        assert again.home_rate + again.away_rate == pytest.approx(base.home_rate + base.away_rate, abs=0.01)
+    assert base.book_over(3.0) < base.book_over(2.75) < base.total_over(2.5)
+    assert base.book_over(3.0) > base.total_over(3.5)  # the refund on exactly 3 lifts the quoted chance
+
+
+def test_nfl_margins_use_the_real_shape():
+    from picks_engine.pricing.models import fit_points
+
+    nfl, smooth = fit_points("NFL", None, -3.5, 0.5), fit_points("CFB", None, -3.5, 0.5)
+    assert nfl.wins_by_more_than("home", 3.5) == pytest.approx(0.5, abs=0.005)
+    # nflverse 2010-2026: a favourite covers by 3+ extra points ~38% of the time, not the bell curve's ~41%
+    assert nfl.wins_by_more_than("home", 6.5) == pytest.approx(0.39, abs=0.015)
+    assert nfl.home_win() == pytest.approx(0.62, abs=0.02)
+    assert smooth.shape is None and nfl.shape is not None
+
+
+def test_winner_no_side():
+    from picks_engine.live.board import Choice, Game
+    from picks_engine.live.lines import winner_no_bets
+
+    g = Game("EPL", "moneyline", "KXEPLGAME-26OCT18ARSLIL", "Arsenal vs Lille", None, [
+        Choice("T-ARS", "Arsenal", "Arsenal wins", Decimal("0.60"), Decimal("0.58"), Decimal("0.36"),
+               book=0.70, books=["Pinnacle", "A", "B"], pinnacle=0.70),
+        Choice("T-TIE", "Tie", "It ends in a tie", Decimal("0.20"), Decimal("0.18"), Decimal("0.82"),
+               book=0.18, books=["Pinnacle", "A", "B"], pinnacle=0.18),
+        Choice("T-LIL", "Lille", "Lille wins", Decimal("0.14"), Decimal("0.12"), Decimal("0.80"),
+               book=0.12, books=["Pinnacle", "A", "B"], pinnacle=0.12)], matched=True)
+    bets = {b.ticker: b for b in winner_no_bets(g, "EPL", "soccer")}
+    assert bets["T-ARS"].headline == "Arsenal doesn't win (draw or Lille)" and bets["T-ARS"].side == "no"
+    assert bets["T-ARS"].fair == pytest.approx(0.30) and bets["T-TIE"].headline == "Not a draw (either team wins)"
+    lil = bets["T-LIL"]  # NO on Lille at 80c, worth 88c: a real edge on the books' own price
+    assert judge_bet(lil, 0.03) and lil.strength == "Strong" and lil.pinnacle == pytest.approx(0.88)
+
+
+def test_game_wide_disagreement_counts_against_the_edge():
+    oe = soccer_event()
+    model, main = model_for("BUNDESLIGA", "soccer", oe)
+
+    def ladder(shift):  # Kalshi's over ladder, `shift` points below the model on every line
+        out = []
+        for line in (1.5, 2.5, 3.5, 4.5):
+            mid = round((model.total_over(line) - shift) * 100)
+            out.append({"ticker": f"T-{line}", "yes_sub_title": f"Over {line} goals scored", "floor_strike": line,
+                        "yes_bid": mid - 1, "yes_ask": mid + 1, "no_ask": 101 - mid})
+        return out
+
+    bets = price_markets(ladder(0.07), "total", "BUNDESLIGA", "soccer", oe, model, main)
+    over = next(b for b in bets if b.ticker == "T-2.5" and b.side == "yes")
+    assert over.level_gap == pytest.approx(0.07, abs=0.01) and over.edge > 0.04
+    assert not judge_bet(over, 0.03)  # ~5 points of edge, but Kalshi disagrees by ~7 on every line of the game
+    lone = price_markets(ladder(0.0)[:1] + [dict(ladder(0.07)[1])] + ladder(0.0)[2:], "total", "BUNDESLIGA",
+                         "soccer", oe, model, main)
+    single = next(b for b in lone if b.ticker == "T-2.5" and b.side == "yes")
+    assert single.level_gap < 0.02  # one cheap line against an agreeing ladder: no penalty

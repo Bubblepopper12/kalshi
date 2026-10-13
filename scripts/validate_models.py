@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import statistics
 import sys
 from collections import defaultdict
@@ -25,7 +26,6 @@ from picks_engine.kalshi.client import KalshiReadOnlyClient, price_field  # noqa
 from picks_engine.kalshi.leagues import LEAGUES, game_series  # noqa: E402
 from picks_engine.live.lines import parse_line  # noqa: E402
 from picks_engine.pricing.devig import devig  # noqa: E402
-from picks_engine import pricing  # noqa: E402,F401
 from picks_engine.pricing import models  # noqa: E402
 
 SEASONS = ["1920", "2021", "2122", "2223", "2324", "2425", "2526"]
@@ -36,9 +36,43 @@ def american(d: float) -> float:
     return (d - 1) * 100 if d >= 2 else -100 / (d - 1)
 
 
+def _logit(p: float) -> float:
+    p = min(max(p, 1e-4), 1 - 1e-4)
+    return math.log(p / (1 - p))
+
+
+def fit_calibration(xs: list[tuple[float, int]]) -> tuple[float, float]:
+    """Logistic recalibration: P(actual) = sigmoid(a + b * logit(model)), fitted by Newton's method."""
+    a, b = 0.0, 1.0
+    for _ in range(25):
+        ga = gb = haa = hab = hbb = 0.0
+        for p, y in xs:
+            z = _logit(p)
+            q = 1 / (1 + math.exp(-(a + b * z)))
+            ga += y - q
+            gb += (y - q) * z
+            w = q * (1 - q)
+            haa += w
+            hab += w * z
+            hbb += w * z * z
+        det = haa * hbb - hab * hab
+        if det <= 0:
+            break
+        a += (hbb * ga - hab * gb) / det
+        b += (haa * gb - hab * ga) / det
+    return a, b
+
+
+def apply(ab: tuple[float, float], p: float) -> float:
+    return 1 / (1 + math.exp(-(ab[0] + ab[1] * _logit(p))))
+
+
+def logloss(xs: list[tuple[float, int]]) -> float:
+    return -statistics.mean(math.log(min(max(p if y else 1 - p, 1e-6), 1)) for p, y in xs)
+
+
 def soccer_backtest() -> None:
-    preds: dict[str, list[tuple[float, int]]] = defaultdict(list)
-    n_games = 0
+    rows: list[tuple[str, dict[str, tuple[float, int]]]] = []  # (season, market -> (model, happened))
     for season in SEASONS:
         for div in DIVS:
             url = f"https://www.football-data.co.uk/mmz4281/{season}/{div}.csv"
@@ -56,34 +90,49 @@ def soccer_backtest() -> None:
                     continue
                 ph, pd, pa = devig([american(h), american(d), american(a)])
                 po, _ = devig([american(o), american(u)])
-                m = models.fit_soccer(ph, pd, pa, 2.5, po)
-                n_games += 1
+                m = models.SoccerModel(*_rates(models.fit_soccer(ph, pd, pa, 2.5, po)))
                 tot = hg + ag
-                for name, p, hit in (
-                    ("over 1.5", m.total_over(1.5), tot > 1.5), ("over 2.5 (fitted)", m.total_over(2.5), tot > 2.5),
-                    ("over 3.5", m.total_over(3.5), tot > 3.5), ("over 4.5", m.total_over(4.5), tot > 4.5),
-                    ("both score", m.both_score(), hg > 0 and ag > 0), ("draw", m.draw(), hg == ag),
-                    ("home by 2+", m.wins_by_more_than("home", 1.5), hg - ag > 1.5),
-                    ("away by 2+", m.wins_by_more_than("away", 1.5), ag - hg > 1.5),
-                    ("home by 3+", m.wins_by_more_than("home", 2.5), hg - ag > 2.5),
-                ):
-                    preds[name].append((p, int(hit)))
-    print(f"\n=== Soccer model vs results: {n_games} games ===")
-    print(f"{'market':<20}{'model':>8}{'actual':>8}{'gap pts':>9}")
-    for name, xs in preds.items():
-        mp = statistics.mean(p for p, _ in xs) * 100
-        ac = statistics.mean(h for _, h in xs) * 100
-        print(f"{name:<20}{mp:8.1f}{ac:8.1f}{ac - mp:+9.1f}")
-    # calibration by bucket for over 3.5 and both score
-    for name in ("over 3.5", "both score", "home by 2+"):
-        print(f"\n{name} by predicted chance:")
+                fav_home = ph >= pa
+                fav_g, dog_g = (hg, ag) if fav_home else (ag, hg)
+                fav, dog = ("home", "away") if fav_home else ("away", "home")
+                mk = {f"over {x}": (m.total_over(x), int(tot > x)) for x in (0.5, 1.5, 2.5, 3.5, 4.5, 5.5)}
+                mk["both score"] = (m.both_score(), int(hg > 0 and ag > 0))
+                mk["draw"] = (m.draw(), int(hg == ag))
+                for x in (1.5, 2.5, 3.5):
+                    mk[f"fav by {x}"] = (m.wins_by_more_than(fav, x), int(fav_g - dog_g > x))
+                    mk[f"dog by {x}"] = (m.wins_by_more_than(dog, x), int(dog_g - fav_g > x))
+                rows.append((season, mk))
+    train = [mk for season, mk in rows if season < "2425"]
+    test = [mk for season, mk in rows if season >= "2425"]
+    print(f"\n=== Soccer model vs results: {len(rows)} games (calibrated on {len(train)}, tested on {len(test)}) ===")
+    print(f"{'market':<14}{'model':>7}{'actual':>8}{'gap':>7}   {'calibrated':>10}{'gap':>7}   a       b       "
+          f"logloss raw->cal")
+    coefs = {}
+    for name in rows[0][1]:
+        tr = [mk[name] for mk in train if name in mk]
+        te = [mk[name] for mk in test if name in mk]
+        ab = fit_calibration(tr)
+        coefs[name] = ab
+        cal = [(apply(ab, p), y) for p, y in te]
+        mp, ac, cp = (statistics.mean(p for p, _ in te) * 100, statistics.mean(y for _, y in te) * 100,
+                      statistics.mean(p for p, _ in cal) * 100)
+        print(f"{name:<14}{mp:7.1f}{ac:8.1f}{ac - mp:+7.1f}   {cp:10.1f}{ac - cp:+7.1f}   {ab[0]:+.3f}  {ab[1]:.3f}  "
+              f"{logloss(te):.4f}->{logloss(cal):.4f}")
+    print("\nCOEFS = {" + ", ".join(f'"{k}": ({a:.4f}, {b:.4f})' for k, (a, b) in coefs.items()) + "}")
+    for name in ("both score", "fav by 1.5", "over 3.5"):
+        print(f"\n{name}, test seasons, by predicted chance (raw -> calibrated vs actual):")
         buckets = defaultdict(list)
-        for p, h in preds[name]:
-            buckets[min(int(p * 10), 9)].append((p, h))
+        for mk in test:
+            p, y = mk[name]
+            buckets[min(int(apply(coefs[name], p) * 10), 9)].append((p, apply(coefs[name], p), y))
         for b in sorted(buckets):
             xs = buckets[b]
-            print(f"  {b * 10:>2}-{b * 10 + 10:<3}% n={len(xs):5d} model {statistics.mean(p for p, _ in xs) * 100:5.1f} "
-                  f"actual {statistics.mean(h for _, h in xs) * 100:5.1f}")
+            print(f"  {b * 10:>2}-{b * 10 + 10:<3}% n={len(xs):5d} raw {statistics.mean(x[0] for x in xs) * 100:5.1f} "
+                  f"cal {statistics.mean(x[1] for x in xs) * 100:5.1f} actual {statistics.mean(x[2] for x in xs) * 100:5.1f}")
+
+
+def _rates(m) -> tuple[float, float]:
+    return m.home_rate, m.away_rate
 
 
 def mid(m: dict) -> float | None:

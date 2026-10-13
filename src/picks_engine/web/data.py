@@ -25,7 +25,7 @@ from ..kalshi.client import KalshiReadOnlyClient
 from ..kalshi.leagues import LEAGUES, game_series
 from ..live.board import Game, games_from_events
 from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient, OddsAPIError
-from ..live.lines import Bet, judge_bet, model_for, price_markets, winner_no_bets
+from ..live.lines import Bet, grade_bet, model_for, price_markets, winner_no_bets
 from ..live.picks import PicksResult, compare, find_game
 
 SERIES_TTL = 600
@@ -235,9 +235,9 @@ class Sources:
 
     # ------------------------------------------------------------ spreads, totals, both teams score
 
-    def line_bets(self, leagues: list[str]) -> list[Bet]:
-        """Every spread / total / both-teams-to-score line for games whose sportsbook odds are already
-        loaded (by picks() or picks_all()), priced by the model. Returns only the ones that make the cut."""
+    def line_bets(self, leagues: list[str]) -> tuple[list[Bet], list[Bet]]:
+        """(picks, leans) among every spread / total / both-teams-to-score line and winner NO side, for games
+        whose sportsbook odds are already loaded (by picks() or picks_all())."""
         now = self.now() or datetime.now(timezone.utc)
         min_edge = self.settings.picks_min_edge
 
@@ -281,13 +281,16 @@ class Sources:
                                            fee_rate=self.settings.kalshi_fee_rate, code_sides=codes):
                         if b.starts is None or b.starts > now:
                             out.append(b)
-            return [b for b in out if judge_bet(b, min_edge)]
+            graded = [(grade_bet(b, min_edge), b) for b in out]
+            return [(g, b) for g, b in graded if g]
 
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
-            bets = [b for chunk in pool.map(one, leagues) for b in chunk]
-        # One pick per market: if both sides somehow qualify, keep the bigger edge.
-        best: dict[str, Bet] = {}
-        for b in bets:
-            if b.ticker not in best or b.edge > best[b.ticker].edge:
-                best[b.ticker] = b
-        return sorted(best.values(), key=lambda b: -b.edge)
+            bets = [x for chunk in pool.map(one, leagues) for x in chunk]
+        # One per market: if both sides somehow qualify, keep the better one.
+        best: dict[str, tuple[str, Bet]] = {}
+        for g, b in bets:
+            if b.ticker not in best or (g, b.edge) > (best[b.ticker][0], best[b.ticker][1].edge):
+                best[b.ticker] = (g, b)
+        picks = sorted((b for g, b in best.values() if g == "pick"), key=lambda b: -b.edge)
+        leans = sorted((b for g, b in best.values() if g == "lean"), key=lambda b: -b.edge)
+        return picks, leans

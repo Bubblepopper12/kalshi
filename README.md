@@ -151,6 +151,19 @@ each team's goals as a Poisson model fitted to the win/draw/loss and over/under 
 basketball: final margin and total as a bell curve centred on the spread and total) and prices every
 Kalshi line from it. Lines priced by the model are labelled **Model** and need 5+ points of edge.
 
+How the models were checked (scripts/validate_models.py, Actions → Validate models):
+- Soccer: fitted to Pinnacle's closing odds on 11,605 games (5 leagues, 2019–2026). Totals matched
+  reality within ~1 point; both-teams-to-score, draws and "favourite by 2+" were off by 2–3 points, so
+  each market type gets a small correction fitted on 2019–2024 and checked on 2,650 later games
+  (every market within 0.7 points). Asian totals (2.75, 3.0) are read the way books settle them.
+- NFL: margins use the real distribution of results around the closing spread (4,442 games), since
+  scores bunch at 3 and 7; totals use a bell curve with the measured spread (13 points).
+- NBA and college: only lines within 4 points of the books' spread (6 of the total) are priced.
+- Per game, if the model sits above Kalshi on every line, that gap counts against the edge.
+
+Below the picks, **Leans** list the best smaller edges (1+ point under fair value after fees), at most
+two per game, so the page always shows the best value available, clearly labelled.
+
 This asks the sportsbook feed for spreads and totals too, which counts as 2–3 requests per league
 lookup instead of 1. The free plan (500 a month) won't last long with every league; The Odds API's
 $30/month plan (20,000) covers daily use. `PICKS_LINES=0` switches back to winners only.

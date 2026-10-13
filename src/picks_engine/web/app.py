@@ -59,7 +59,7 @@ from .security import (COOKIE, MIN_PASSWORD_LENGTH, SESSION_HOURS, _password, _t
 from .ui import esc, page, steps
 from . import ask as asking
 from . import mdlite
-from ..live.lines import KINDS, from_pick
+from ..live.lines import KINDS, from_pick, grade_bet, spread_out
 from .views import (KIND_FILTER_JS, SEARCH_JS, ask_box, bet_href, game_card, league_chips, patient_price, search_bar,
                     size_bet, slip_card)
 
@@ -67,6 +67,7 @@ TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 300
 MAX_ALL_BOARD = 60
 MAX_SLIPS = 60
+MAX_LEANS = 24
 MAX_GRADED = 60  # most recent markets graded per page load
 RECENT_GRADED = 8  # orders graded on the Account page
 RESEARCH_DIR = Path(os.environ.get("RESEARCH_DIR") or Path(__file__).resolve().parents[3] / "research" / "reports")
@@ -330,12 +331,15 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
         name = "all leagues" if league == "ALL" else LEAGUES[league].name
         compared = list(LEAGUES) if league == "ALL" else [league]
         try:
-            line_picks = sources(s).line_bets(compared)
+            line_picks, line_leans = sources(s).line_bets(compared)
         except (httpx.HTTPError, OddsAPIError):
-            line_picks = []
+            line_picks, line_leans = [], []
         bets = sorted([from_pick(p, p.game.league) for p in result.picks] + line_picks, key=lambda b: -b.edge)
-        for b in bets:
-            if b.kind != "winner":
+        winner_leans = [b for b in (from_pick(p, p.game.league) for p in result.near)
+                        if grade_bet(b, s.picks_min_edge) == "lean"]
+        leans = spread_out(line_leans + winner_leans, per_game=2, limit=MAX_LEANS)
+        for b in bets + leans:
+            if b.kind != "winner" or b.strength == "Lean":
                 size_bet(b, cash, s.max_order_dollars)
         status = []
         if result.in_progress:
@@ -346,11 +350,11 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
         if left is not None:
             status.append(f"{left} sportsbook lookups left this month")
         status.append(f'<a href="/?league={league}&refresh=1">Refresh</a>')
-        kinds_found = {b.kind for b in bets}
+        kinds_found = {b.kind for b in bets + leans}
         parts.append(f'''<div class="stats"><div><b>{len(bets)}</b><span>Picks</span></div>
-<div><b>{sum(1 for b in bets if b.strength == "Strong")}</b><span>Strong</span></div>
+<div><b>{len(leans)}</b><span>Leans</span></div>
 <div><b>{result.games_matched}</b><span>Games priced</span></div>
-<div><b>{f"+{bets[0].edge * 100:.1f}" if bets else "–"}</b><span>Best edge (pts)</span></div></div>''')
+<div><b>{f"+{max(b.edge for b in bets + leans) * 100:.1f}" if bets or leans else "–"}</b><span>Best edge (pts)</span></div></div>''')
         parts.append('<p class="status">' + "".join(f"<span>{x}</span>" for x in status) + "</p>")
         if notes:
             parts.append('<p class="muted small">' + esc(" ".join(notes)) + "</p>")
@@ -361,12 +365,19 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
         parts.append('<section style="margin-top:8px">')
         if bets:
             parts.append('<div class="slips">' + "".join(slip_card(b, cash) for b in bets[:MAX_SLIPS]) + "</div>")
-            parts.append('<p class="muted empty" id="noslips" style="display:none">No picks of this type right now.</p>')
-        else:
-            parts.append(f'''<div class="card empty"><h3>No picks in {esc(name)} right now</h3>
-<p class="muted">Nothing on Kalshi is at least {s.picks_min_edge * 100:.0f} points cheaper than it's worth
-(5 for lines the bot prices with its model). That's normal: Kalshi usually stays close to the sportsbooks.
-Check closer to game time or try another league.</p></div>''')
+        elif not leans:
+            parts.append(f'''<div class="card empty"><h3>Nothing under fair value in {esc(name)} right now</h3>
+<p class="muted">Every Kalshi price is within a point of what the sportsbooks say it's worth. Prices move as
+game time gets closer and news comes out; check back later or try another league.</p></div>''')
+        if leans:
+            intro = ("No bet clears the full bar right now, so here are the best smaller edges, ranked."
+                     if not bets else "Smaller edges, ranked. Worth a look; bet smaller than on picks.")
+            parts.append(f'''<p class="eyebrow" style="margin-top:26px">Leans</p>
+<h2>Best of the rest <span class="muted small">{len(leans)}</span></h2>
+<p class="muted small">{intro} A lean is at least 1 point under fair value after Kalshi's fee but short of the
+{s.picks_min_edge * 100:.0f}-point bar (5 for model-priced lines). At most 2 per game.</p>
+<div class="slips">{"".join(slip_card(b, cash) for b in leans)}</div>''')
+        parts.append('<p class="muted empty" id="noslips" style="display:none">Nothing of this type right now.</p>')
         parts.append("</section>")
 
         board = sorted(result.board, key=lambda g: (-(g.best_edge if g.best_edge is not None else -9),

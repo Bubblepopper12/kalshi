@@ -297,14 +297,14 @@ def cmd_research(args, settings):
 
     leagues = [get_league(c.strip()).code for c in args.leagues.split(",")] if args.leagues else list(LEAGUES)
     since = datetime.fromisoformat(args.since).replace(tzinfo=timezone.utc)
-    on_league = None
-    if args.publish:
-        import subprocess
+    import subprocess
 
-        def on_league(code: str) -> None:  # save each league to GitHub as soon as it's done
-            subprocess.run(["sh", "-c", args.publish, "publish", code], check=False)
+    def publish(code: str) -> None:  # save each league to GitHub as soon as it's done
+        subprocess.run(["sh", "-c", args.publish, "publish", code], check=False)
+
     with _client(settings) as client:
-        results = research.run(client, leagues, since, fee_rate=settings.kalshi_fee_rate, on_league=on_league,
+        results = research.run(client, leagues, since, fee_rate=settings.kalshi_fee_rate,
+                               on_league=publish if args.publish else None,
                                progress=lambda m: print(m, flush=True), reuse_data=args.reuse,
                                update=not args.fresh)
     print("\n" + "\n".join(f"{r.name}: {r.verdict or r.error}" for r in results))

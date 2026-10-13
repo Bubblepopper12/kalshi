@@ -331,8 +331,8 @@ def test_picks_page_no_strong_picks(env, exchange, fake, monkeypatch):
     handler, _ = odds_feed(books=((-130, 110), (-135, 115)))  # Philadelphia ~55%: Kalshi's 58c is too dear
     web = picks_web(fake, exchange, handler)
     login(web)
-    assert "No picks in NFL right now" in web.get("/?league=NFL").text
-    assert "No picks in all leagues right now" in web.get("/").text
+    assert "Nothing under fair value in NFL right now" in web.get("/?league=NFL").text
+    assert "Nothing under fair value in all leagues right now" in web.get("/").text
 
 
 def test_bet_link_prefills_contracts_and_price(web):
@@ -373,7 +373,7 @@ def test_in_progress_games_are_listed_not_compared(env, exchange, fake, monkeypa
     web = TestClient(app, base_url="https://testserver")
     login(web)
     r = web.get("/")
-    assert "1 already started" in r.text and "in progress" in r.text and "No picks in" in r.text
+    assert "1 already started" in r.text and "in progress" in r.text and "Nothing under fair value" in r.text
 
 
 def test_patient_price_rules():
@@ -419,3 +419,13 @@ def test_all_leagues_saves_lookups_when_quota_is_low(env, exchange, fake, monkey
     r = web.get("/")
     assert calls == [] and "Skipped to save sportsbook lookups" in r.text and "NFL" in r.text
     assert web.get("/?league=NFL").status_code == 200 and len(calls) == 1  # a single league still looks up
+
+
+def test_smaller_edges_show_as_leans(env, exchange, fake, monkeypatch):
+    monkeypatch.setenv("ODDS_API_KEY", "odds-key")
+    handler, _ = odds_feed(books=((-170, 150), (-170, 150), (-170, 150)))  # Philadelphia ~61.9%; Kalshi 58c + fee
+    web = picks_web(fake, exchange, handler)
+    login(web)
+    best = web.get("/?league=NFL").text.split("Every game")[0]
+    assert "Best of the rest" in best and "Philadelphia wins" in best and ">Lean<" in best
+    assert "Nothing under fair value" not in best

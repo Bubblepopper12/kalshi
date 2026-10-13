@@ -69,8 +69,10 @@ def test_main_lines_and_pricing_both_sides():
 def test_model_lines_need_a_bigger_edge():
     oe = soccer_event()
     model, main = model_for("BUNDESLIGA", "soccer", oe)
-    fair = model.both_score()
-    ask = Decimal(str(round(fair - 0.05, 2)))  # ~4 points of edge after the fee: enough for a book line, not a model one
+    from picks_engine.pricing.soccer_calibration import calibrated
+
+    fair = calibrated("both score", model.both_score())
+    ask = Decimal(int((fair - 0.052) * 100)) / 100  # ~4 points of edge after the fee: enough for a book line, not a model one
     b = price_markets([{"ticker": "B", "title": "Both Teams To Score?", "yes_ask": int(ask * 100), "no_ask": 99}],
                       "btts", "BUNDESLIGA", "soccer", oe, model, main)[0]
     assert 0.03 <= b.edge < 0.05 and not judge_bet(b, 0.03)
@@ -145,7 +147,9 @@ def test_spread_team_found_by_ticker_code_when_names_differ():
          "yes_ask": 50, "no_ask": 52}
     assert price_markets([m], "spread", "BUNDESLIGA", "soccer", oe, model, main) == []  # a name the books don't use: no match
     bets = price_markets([m], "spread", "BUNDESLIGA", "soccer", oe, model, main, code_sides={"FCB": "home"})
-    assert bets and bets[0].fair == pytest.approx(model.wins_by_more_than("home", 1.5))
+    from picks_engine.pricing.soccer_calibration import calibrated
+
+    assert bets and bets[0].fair == pytest.approx(calibrated("fav by 1.5", model.wins_by_more_than("home", 1.5)))
 
 
 def test_asian_totals_are_read_like_the_books_settle_them():

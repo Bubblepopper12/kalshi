@@ -219,7 +219,7 @@ def size_bet(b: Bet, cash: Decimal | None, max_order: float, kelly_fraction: flo
 def slip_card(b: Bet, cash: Decimal | None) -> str:
     cost_pct, fair_pct = float(b.cost) * 100, b.fair * 100
     lo, hi = sorted((cost_pct, fair_pct))
-    strength = {"Strong": "pos", "Good": "lean", "Model": "info"}.get(b.strength, "neg")
+    strength = {"Strong": "pos", "Good": "lean", "Model": "info", "Lean": "neg"}.get(b.strength, "neg")
     when_txt = when(b.starts) if b.starts else ""
     if b.contracts > 0:
         size = f"{b.contracts} × {cents(b.ask)} ≈ {money(b.stake)} · pays {money(b.contracts)}"
@@ -242,7 +242,7 @@ def slip_card(b: Bet, cash: Decimal | None) -> str:
 <span class="when">{esc(when_txt)}</span></div>
 <h3>{esc(b.headline)}</h3><div class="game-name">{esc(b.game)}</div>
 <div class="quote"><div class="price">{cents(b.ask)}<small>{side_txt} · +{float(b.fee) * 100:.1f}¢ fee</small></div>
-<div class="edgebig{'' if b.exact else ' model'}" title="Fair chance minus cost, in points">+{b.edge * 100:.1f} pts</div></div>
+<div class="edgebig{'' if b.exact and b.strength != 'Lean' else ' model'}" title="Fair chance minus cost, in points">+{b.edge * 100:.1f} pts</div></div>
 <div><div class="meter" aria-hidden="true"><div class="gap" style="left:{lo:.1f}%;width:{max(hi - lo, 0.8):.1f}%"></div>
 <div class="tick" style="left:calc({cost_pct:.1f}% - 1px)"></div></div>
 <div class="meter-labels"><span>Cost <b>{cost_pct:.1f}¢</b></span><span>Worth <b>{fair_pct:.1f}¢</b></span></div></div>

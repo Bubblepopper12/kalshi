@@ -18,6 +18,7 @@ from ..kalshi.client import price_field
 from ..pricing.devig import devig
 from ..pricing.fees import fee_per_contract
 from ..pricing.models import PointsModel, SoccerModel, fit_points, fit_soccer
+from ..pricing.soccer_calibration import calibrated
 from .picks import LONGSHOT_EDGE, LONGSHOT_PRICE, SHARP_BOOKS, Pick, book_views
 from .teams import name_matches
 
@@ -25,6 +26,7 @@ KINDS = {"winner": "Winners", "spread": "Spreads", "total": "Totals", "btts": "B
 MODEL_EDGE = 0.05  # model-priced lines need 5+ points (the model adds its own error)
 LIQUID_SPREAD = Decimal("0.06")  # lines with a tighter buy/sell gap than this say where Kalshi really is
 LEVEL_FLOOR = 0.02  # disagreements smaller than this across a game's ladder are noise
+LEAN_EDGE = 0.01  # a "lean": at least 1 point under fair value after fees, but short of the pick bar
 STRETCH = {"soccer": 1.0, "points": 4.0}  # lines further than this from the books' own are "far"
 # Leagues whose margin/total shape hasn't been checked against enough real results: only price lines this
 # close to the books' own (spread, total). The NFL uses real results (see pricing/football_margins.py).
@@ -208,6 +210,9 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
                 continue
             side, line = sides[0], info["line"]
             p_yes = model.wins_by_more_than(side, line)
+            if isinstance(model, SoccerModel):
+                fav = model.home_win() >= model.away_win() if side == "home" else model.away_win() > model.home_win()
+                p_yes = calibrated(f"{'fav' if fav else 'dog'} by {line:g}", p_yes)
             yes_txt = f"{team} wins by {_plus(line)} {unit}"
             no_txt = f"{team} doesn't win by {_plus(line)} {unit}"
             if sport != "soccer" and lines.spread is not None:
@@ -223,6 +228,8 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
         elif kind == "total":
             line = info["line"]
             p_yes = model.total_over(line)
+            if isinstance(model, SoccerModel):
+                p_yes = calibrated(f"over {line:g}", p_yes)
             yes_txt, no_txt = f"Over {line:g} {unit}", f"Under {line:g} {unit}"
             exact = lines.total is not None and abs(line - lines.total) < 0.01
             if league in NEAR_ONLY and (lines.total is None or abs(line - lines.total) > NEAR_ONLY[league][1]):
@@ -231,7 +238,7 @@ def price_markets(markets: list[dict], kind: str, league: str, sport: str, oe: d
         else:  # btts
             if not isinstance(model, SoccerModel):
                 continue
-            p_yes = model.both_score()
+            p_yes = calibrated("both score", model.both_score())
             yes_txt, no_txt = "Both teams score", "Not both teams score (at least one shut out)"
             exact, far = False, False
         if p_yes is None:
@@ -287,8 +294,12 @@ def _book_line_text(kind: str, lines: MainLines) -> str:
     return "none"
 
 
-def judge_bet(b: Bet, min_edge: float) -> bool:
-    """Is it a pick? Sets strength and notes. Model lines need MODEL_EDGE; longshots need more."""
+def grade_bet(b: Bet, min_edge: float) -> str | None:
+    """"pick" (clears the bar), "lean" (a smaller real edge worth a look) or None. Sets strength and notes.
+
+    The bar: min_edge on the books' own line, MODEL_EDGE on model-priced lines, more for longshots, plus
+    any game-wide disagreement with Kalshi. A lean must still be at least LEAN_EDGE above that
+    disagreement and fees, and isn't a longshot."""
     need = min_edge if b.exact else max(min_edge, MODEL_EDGE)
     penalty = b.level_gap if b.level_gap > LEVEL_FLOOR else 0.0
     need += penalty
@@ -296,7 +307,15 @@ def judge_bet(b: Bet, min_edge: float) -> bool:
     if longshot:
         need = max(need, LONGSHOT_EDGE)
     if b.edge < need:
-        return False
+        if longshot or b.edge - penalty < LEAN_EDGE:
+            return None
+        b.strength = "Lean"
+        if not b.exact:
+            b.notes.append("Priced by the bot's model from the sportsbooks' main lines.")
+        if penalty:
+            b.notes.append(f"Kalshi sits about {penalty * 100:.0f} points below the model on this game's other "
+                           "lines, so the real edge may be smaller.")
+        return "lean"
     sharp_ok = b.kind != "winner" or (b.pinnacle is not None and b.pinnacle - float(b.cost) >= 0.01)
     if b.kind == "winner" and b.pinnacle is not None and b.pinnacle < float(b.cost):
         b.notes.append("Pinnacle, the sharpest sportsbook, doesn't agree this is cheap.")
@@ -313,7 +332,27 @@ def judge_bet(b: Bet, min_edge: float) -> bool:
         b.notes.append(f"Only {len(b.books)} sportsbooks to build the price from.")
     if longshot:
         b.notes.append("Longshot: it needed an extra-big edge to make the list.")
-    return True
+    return "pick"
+
+
+def judge_bet(b: Bet, min_edge: float) -> bool:
+    """Is it a pick? (See grade_bet.)"""
+    return grade_bet(b, min_edge) == "pick"
+
+
+def spread_out(bets: list[Bet], per_game: int = 2, limit: int | None = None) -> list[Bet]:
+    """Best first, at most `per_game` bets from any one game, so one match can't fill the page."""
+    seen: dict[tuple[str, str], int] = {}
+    out = []
+    for b in sorted(bets, key=lambda b: -(b.edge - max(b.level_gap, 0.0))):
+        key = (b.league, b.game)
+        if seen.get(key, 0) >= per_game:
+            continue
+        seen[key] = seen.get(key, 0) + 1
+        out.append(b)
+        if limit and len(out) >= limit:
+            break
+    return out
 
 
 def has_sharp(books: list[str]) -> bool:

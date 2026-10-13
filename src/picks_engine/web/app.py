@@ -59,11 +59,14 @@ from .security import (COOKIE, MIN_PASSWORD_LENGTH, SESSION_HOURS, _password, _t
 from .ui import esc, page, steps
 from . import ask as asking
 from . import mdlite
-from .views import SEARCH_JS, ask_box, bet_href, game_card, league_chips, patient_price, pick_card, search_bar
+from ..live.lines import KINDS, from_pick
+from .views import (KIND_FILTER_JS, SEARCH_JS, ask_box, bet_href, game_card, league_chips, patient_price, search_bar,
+                    size_bet, slip_card)
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 300
 MAX_ALL_BOARD = 60
+MAX_SLIPS = 60
 MAX_GRADED = 60  # most recent markets graded per page load
 RECENT_GRADED = 8  # orders graded on the Account page
 RESEARCH_DIR = Path(os.environ.get("RESEARCH_DIR") or Path(__file__).resolve().parents[3] / "research" / "reports")
@@ -293,11 +296,10 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
             return blocked
         s = settings()
         league = league.upper() if league.upper() in LEAGUES or league.upper() == "ALL" else "ALL"
-        parts = [f'''<h1>Picks</h1>
-<p class="lead">Bets where Kalshi's price is lower than what the sportsbooks think the outcome is worth.
-It's math, not a guarantee, so keep bets small.</p>
-{ask_box("")}
-{league_chips(league, lambda code: "/?league=" + code, include_all=True)}''']
+        parts = [f'''<div class="hero"><p class="eyebrow">Today's board · {esc(now_utc().astimezone(local_zone()).strftime("%a %b %-d"))}</p>
+<h1>Picks</h1><p class="lead">Every Kalshi bet that costs less than it's worth: winners, spreads, totals and
+both-teams-to-score, priced against the sportsbooks. Math, not a guarantee, so keep bets small.</p></div>
+{ask_box("")}''']
         if not s.odds_api_key:
             parts.append('''<div class="card warn"><h2>One more setup step</h2>
 <p>Picks compare Kalshi with sportsbook prices, which come from The Odds API. Get a free key at
@@ -326,28 +328,45 @@ the-odds-api.com, then add it in Vercel → Settings → Environment Variables a
         for p in result.picks:
             size(p, cash, s.max_order_dollars)
         name = "all leagues" if league == "ALL" else LEAGUES[league].name
-        label = "" if league == "ALL" else f"{esc(name)} "
-        status = [f"{result.games_matched} of {result.games_checked} {label}games compared with the sportsbooks"]
+        compared = list(LEAGUES) if league == "ALL" else [league]
+        try:
+            line_picks = sources(s).line_bets(compared)
+        except (httpx.HTTPError, OddsAPIError):
+            line_picks = []
+        bets = sorted([from_pick(p, p.game.league) for p in result.picks] + line_picks, key=lambda b: -b.edge)
+        for b in bets:
+            if b.kind != "winner":
+                size_bet(b, cash, s.max_order_dollars)
+        status = []
         if result.in_progress:
             status.append(f"{result.in_progress} already started")
         if fetched is not None:
             age = int((time.time() - fetched) // 60)
-            status.append("sportsbook odds from just now" if age == 0 else f"sportsbook odds from {age} min ago")
+            status.append("odds just now" if age == 0 else f"odds {age} min old")
         if left is not None:
             status.append(f"{left} sportsbook lookups left this month")
         status.append(f'<a href="/?league={league}&refresh=1">Refresh</a>')
+        kinds_found = {b.kind for b in bets}
+        parts.append(f'''<div class="stats"><div><b>{len(bets)}</b><span>Picks</span></div>
+<div><b>{sum(1 for b in bets if b.strength == "Strong")}</b><span>Strong</span></div>
+<div><b>{result.games_matched}</b><span>Games priced</span></div>
+<div><b>{f"+{bets[0].edge * 100:.1f}" if bets else "–"}</b><span>Best edge (pts)</span></div></div>''')
         parts.append('<p class="status">' + "".join(f"<span>{x}</span>" for x in status) + "</p>")
         if notes:
             parts.append('<p class="muted small">' + esc(" ".join(notes)) + "</p>")
-
-        parts.append(f'<section><h2>Best picks <span class="muted small">{len(result.picks)}</span></h2>')
-        if result.picks:
-            parts.extend(pick_card(p, cash) for p in result.picks)
+        type_chips = '<div class="chips">' + '<a href="#" class="on" data-kindchip="all">All types</a>' + "".join(
+            f'<a href="#" data-kindchip="{k}">{label}</a>' for k, label in KINDS.items() if k in kinds_found) + "</div>"
+        parts.append(f'''<div class="toolbar">{type_chips}</div>
+{league_chips(league, lambda code: "/?league=" + code, include_all=True)}''')
+        parts.append('<section style="margin-top:8px">')
+        if bets:
+            parts.append('<div class="slips">' + "".join(slip_card(b, cash) for b in bets[:MAX_SLIPS]) + "</div>")
+            parts.append('<p class="muted empty" id="noslips" style="display:none">No picks of this type right now.</p>')
         else:
-            parts.append(f'''<div class="card empty"><h3>No strong picks in {esc(name)} right now</h3>
-<p class="muted">Nothing is at least {s.picks_min_edge * 100:.0f} points cheaper on Kalshi than at the sportsbooks.
-That's normal: Kalshi's prices usually stay close. Check closer to game time, try another league, or look through
-every game below.</p></div>''')
+            parts.append(f'''<div class="card empty"><h3>No picks in {esc(name)} right now</h3>
+<p class="muted">Nothing on Kalshi is at least {s.picks_min_edge * 100:.0f} points cheaper than it's worth
+(5 for lines the bot prices with its model). That's normal: Kalshi usually stays close to the sportsbooks.
+Check closer to game time or try another league.</p></div>''')
         parts.append("</section>")
 
         board = sorted(result.board, key=lambda g: (-(g.best_edge if g.best_edge is not None else -9),
@@ -356,7 +375,8 @@ every game below.</p></div>''')
         if league == "ALL":  # every league at once: just the games that were compared
             shown = [g for g in board if g.matched or g.starts is not None][:MAX_ALL_BOARD]  # compared or underway
             hidden, board = len(board) - len(shown), shown
-        parts.append('<section><h2>Every game <span class="muted small">Kalshi price vs. sportsbooks</span></h2>'
+        parts.append('<section><p class="eyebrow">The full board</p><h2>Every game '
+                     '<span class="muted small">who wins: Kalshi price vs. sportsbooks</span></h2>'
                      '<p class="muted small">Each box: the team, what it costs on Kalshi, the sportsbooks\' chance, '
                      'and the difference in points (green = cheaper on Kalshi).</p>')
         parts.append(search_bar(q, "Search: team, nickname or day", picks_filter=True))
@@ -378,12 +398,16 @@ every game below.</p></div>''')
 and removes their built-in profit margin, which gives a fair chance for each outcome.</p>
 <p>2. It compares that chance with Kalshi's live price plus Kalshi's fee. If Kalshi is at least
 {min_pts} points cheaper, it's a pick.</p>
+<p><b>Spreads, totals and both-teams-to-score:</b> the sportsbooks post one main line per game; Kalshi lists many.
+The bot fits a model to the books' lines (goals as a Poisson model in soccer; final margin and total points as a
+bell curve in football and basketball) and prices every Kalshi line from it, YES and NO. These are marked
+<b>Model</b> and need 5+ points, because the model adds its own error.</p>
 <p>3. <b>Strong</b> means at least {strong_pts} points, 3+ sportsbooks, Pinnacle priced it and agrees, and Kalshi
 prices aren't stretched. <b>Good</b> means it clears {min_pts} points but misses one of those.</p>
 <p>Games that have already started aren't compared: in-game prices move with the score.</p>
 <p>4. Suggested size is a quarter of the "Kelly" amount for your cash, never above your per-bet limit.</p>
-<p class="muted small">Coming later: tipster track records and the bot's own model.</p></details>''')
-        parts.append(SEARCH_JS)
+</details>''')
+        parts.append(SEARCH_JS + KIND_FILTER_JS)
         return page(s, "Picks", "".join(parts), tab="picks")
 
     # ------------------------------------------------------------ all bets

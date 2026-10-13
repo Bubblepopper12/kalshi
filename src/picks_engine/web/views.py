@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 from ..kalshi.leagues import LEAGUES
 from ..live.board import Choice, Game
+from ..live.lines import Bet
 from ..live.picks import Pick
 from .describe import cents, day_label, money, when
 from .ui import esc
@@ -189,3 +190,78 @@ def pick_card(p: Pick, cash: Decimal | None) -> str:
 <dt>Suggested</dt><dd>{esc(suggest)}</dd></dl>{notes}
 <p class="actions"><a class="btn" href="{esc(bet_href(c.ticker, "yes", max(p.contracts, 1)))}">Bet this →</a>
 <span class="muted small">You'll review it before anything is sent.</span></p></article>'''
+
+
+# ---------------------------------------------------------------- bet slips (the Picks page)
+
+KIND_TAGS = {"winner": "Winner", "spread": "Spread", "total": "Total", "btts": "Both score"}
+LEAGUE_TAGS = {"NFL": "NFL", "CFB": "NCAAF", "NBA": "NBA", "EPL": "EPL", "UCL": "UCL", "MLS": "MLS",
+               "LALIGA": "La Liga", "SERIEA": "Serie A", "BUNDESLIGA": "Bundesliga", "LIGUE1": "Ligue 1"}
+
+
+def size_bet(b: Bet, cash: Decimal | None, max_order: float, kelly_fraction: float = 0.25) -> None:
+    """Suggested contracts: quarter-Kelly of cash, capped at the per-bet limit (same rule as winner picks)."""
+    from decimal import ROUND_DOWN
+
+    from ..pricing.kelly import stake_fraction
+
+    cost = b.cost
+    if cost <= 0:
+        return
+    budget = Decimal(str(max_order))
+    if cash is not None:
+        frac = stake_fraction(b.fair, float(cost), kelly_fraction=kelly_fraction, cap=1.0)
+        budget = min(budget, cash * Decimal(str(frac)), cash)
+    b.contracts = max(int((budget / cost).to_integral_value(rounding=ROUND_DOWN)), 0)
+    b.stake = (cost * b.contracts).quantize(Decimal("0.01"))
+
+
+def slip_card(b: Bet, cash: Decimal | None) -> str:
+    cost_pct, fair_pct = float(b.cost) * 100, b.fair * 100
+    lo, hi = sorted((cost_pct, fair_pct))
+    strength = {"Strong": "pos", "Good": "lean", "Model": "info"}.get(b.strength, "neg")
+    when_txt = when(b.starts) if b.starts else ""
+    if b.contracts > 0:
+        size = f"{b.contracts} × {cents(b.ask)} ≈ {money(b.stake)} · pays {money(b.contracts)}"
+    elif cash is not None and cash < b.cost:
+        size = "Add cash on Kalshi to take this"
+    else:
+        size = "Small edge for your bankroll: 1 contract"
+    why = [f"<dt>Fair chance</dt><dd>{fair_pct:.1f}% <span class='muted small'>({esc(b.source)})</span></dd>",
+           f"<dt>Kalshi cost</dt><dd>{cents(b.ask)} + {float(b.fee) * 100:.1f}¢ fee = {cost_pct:.1f}¢</dd>"]
+    if b.books:
+        why.append(f"<dt>Sportsbooks</dt><dd>{esc(', '.join(b.books[:5]))}"
+                   f"{f' +{len(b.books) - 5}' if len(b.books) > 5 else ''}</dd>")
+    if b.pinnacle is not None:
+        why.append(f"<dt>Pinnacle</dt><dd>{b.pinnacle * 100:.1f}%</dd>")
+    notes = "".join(f"<li>{esc(n)}</li>" for n in b.notes)
+    side_txt = "YES" if b.side == "yes" else "NO"
+    return f'''<article class="slip{' strong' if b.strength == 'Strong' else ''}" data-kind="{esc(b.kind)}">
+<div class="slip-top"><span class="kind {esc(b.kind)}">{esc(KIND_TAGS.get(b.kind, b.kind))}</span>
+<span>{esc(LEAGUE_TAGS.get(b.league, b.league))}</span><span class="badge {strength}" style="margin:0">{esc(b.strength)}</span>
+<span class="when">{esc(when_txt)}</span></div>
+<h3>{esc(b.headline)}</h3><div class="game-name">{esc(b.game)}</div>
+<div class="quote"><div class="price">{cents(b.ask)}<small>{side_txt} · +{float(b.fee) * 100:.1f}¢ fee</small></div>
+<div class="edgebig{'' if b.exact else ' model'}" title="Fair chance minus cost, in points">+{b.edge * 100:.1f} pts</div></div>
+<div><div class="meter" aria-hidden="true"><div class="gap" style="left:{lo:.1f}%;width:{max(hi - lo, 0.8):.1f}%"></div>
+<div class="tick" style="left:calc({cost_pct:.1f}% - 1px)"></div></div>
+<div class="meter-labels"><span>Cost <b>{cost_pct:.1f}¢</b></span><span>Worth <b>{fair_pct:.1f}¢</b></span></div></div>
+<details><summary>Why this pick</summary><dl class="sum" style="margin-top:10px">{"".join(why)}</dl>
+{f'<ul class="cautions">{notes}</ul>' if notes else ''}</details>
+<div class="slip-foot"><span class="size">{esc(size)}</span>
+<a class="btn sm" href="{esc(bet_href(b.ticker, b.side, max(b.contracts, 1)))}">Bet this →</a></div></article>'''
+
+
+KIND_FILTER_JS = """<script>
+(function(){
+  var chips=document.querySelectorAll('[data-kindchip]');
+  chips.forEach(function(c){c.addEventListener('click',function(e){e.preventDefault();
+    var k=c.getAttribute('data-kindchip');
+    chips.forEach(function(x){x.classList.toggle('on',x===c);});
+    var shown=0;
+    document.querySelectorAll('.slip').forEach(function(s){
+      var ok=(k==='all'||s.getAttribute('data-kind')===k); s.style.display=ok?'':'none'; if(ok)shown++;});
+    var none=document.getElementById('noslips'); if(none) none.style.display=shown?'none':'';
+  });});
+})();
+</script>"""

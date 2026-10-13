@@ -142,6 +142,19 @@ in Vercel (Production, Sensitive) and redeploy. Optional: `PICKS_MIN_EDGE`
 Not in picks yet: tipster track records and the bot's own model (they need
 collected history first), spreads and totals.
 
+### Spreads, totals and both teams to score
+
+Picks also covers Kalshi's spread ("Bayern wins by 3+ goals"), total ("over 3.5 goals") and
+both-teams-to-score markets, YES and NO (so "under 3.5" can be a pick). Sportsbooks post one main
+line per game; Kalshi lists many. The bot fits a model to the books' lines for each game (soccer:
+each team's goals as a Poisson model fitted to the win/draw/loss and over/under prices; football and
+basketball: final margin and total as a bell curve centred on the spread and total) and prices every
+Kalshi line from it. Lines priced by the model are labelled **Model** and need 5+ points of edge.
+
+This asks the sportsbook feed for spreads and totals too, which counts as 2–3 requests per league
+lookup instead of 1. The free plan (500 a month) won't last long with every league; The Odds API's
+$30/month plan (20,000) covers daily use. `PICKS_LINES=0` switches back to winners only.
+
 ### The Ask box: type what you want
 
 The box at the top of Picks takes plain words: "best NBA bets tonight", "eagles",

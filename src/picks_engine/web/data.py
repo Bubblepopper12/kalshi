@@ -12,6 +12,7 @@ and the cached odds, so a pick never rests on a stale Kalshi price.
 
 from __future__ import annotations
 
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -24,7 +25,8 @@ from ..kalshi.client import KalshiReadOnlyClient
 from ..kalshi.leagues import LEAGUES, game_series
 from ..live.board import Game, games_from_events
 from ..live.odds_api import DEFAULT_BOOKMAKERS, OddsAPIClient, OddsAPIError
-from ..live.picks import PicksResult, compare
+from ..live.lines import Bet, judge_bet, model_for, price_markets
+from ..live.picks import PicksResult, compare, find_game
 
 SERIES_TTL = 600
 EVENTS_TTL = 90
@@ -46,6 +48,14 @@ def clear_caches() -> None:
     _events.clear()
     _odds.clear()
     _quota.clear()
+
+
+def odds_markets(league: str) -> str:
+    """What to ask the sportsbook feed for. Spreads/totals let the bot price every Kalshi line, but each
+    extra market counts as another request on the monthly plan; PICKS_LINES=0 turns them off."""
+    if os.environ.get("PICKS_LINES", "1") == "0":
+        return "h2h"
+    return "h2h,totals" if LEAGUES[league].sport == "soccer" else "h2h,spreads,totals"
 
 
 @dataclass
@@ -142,7 +152,7 @@ class Sources:
         s = self.settings
         with OddsAPIClient(s.odds_api_key or "", s.odds_bookmakers or DEFAULT_BOOKMAKERS,
                            transport=self.odds_transport) as oc:
-            odds = oc.moneylines(LEAGUES[league].odds_sport)
+            odds = oc.moneylines(LEAGUES[league].odds_sport, odds_markets(league))
         hit = (now, odds.events, odds.requests_remaining)
         _odds[league] = hit
         if odds.requests_remaining is not None:
@@ -222,3 +232,58 @@ class Sources:
         out.result.picks.sort(key=lambda p: -p.edge)
         out.result.near.sort(key=lambda p: -p.edge)
         return out
+
+    # ------------------------------------------------------------ spreads, totals, both teams score
+
+    def line_bets(self, leagues: list[str]) -> list[Bet]:
+        """Every spread / total / both-teams-to-score line for games whose sportsbook odds are already
+        loaded (by picks() or picks_all()), priced by the model. Returns only the ones that make the cut."""
+        now = self.now() or datetime.now(timezone.utc)
+        min_edge = self.settings.picks_min_edge
+
+        def one(code: str) -> list[Bet]:
+            hit = _odds.get(code)
+            if not hit:
+                return []
+            lg = LEAGUES[code]
+            kinds = ["spread", "total"] + (["btts"] if lg.sport == "soccer" else [])
+            try:
+                winners = games_from_events(self.events(code, "moneyline"), code, "moneyline")
+            except httpx.HTTPError:
+                return []
+            games: dict[str, dict] = {}  # Kalshi game code ("26OCT18DALPHI") -> sportsbook game
+            for g in winners:
+                found = find_game(g, hit[1])
+                if found and "-" in g.event_ticker:
+                    games[g.event_ticker.split("-", 1)[1]] = found[0]
+            models: dict[str, tuple] = {}
+            out: list[Bet] = []
+            for kind in kinds:
+                try:
+                    events = self.events(code, kind)
+                except httpx.HTTPError:
+                    continue
+                for ev in events:
+                    key = (ev.get("event_ticker") or "").split("-", 1)[-1]
+                    oe = games.get(key)
+                    if oe is None:
+                        continue
+                    if key not in models:
+                        models[key] = model_for(code, lg.sport, oe)
+                    model, main = models[key]
+                    for b in price_markets(ev.get("markets") or [], kind, code, lg.sport, oe, model, main,
+                                           fee_rate=self.settings.kalshi_fee_rate):
+                        if b.starts is not None and b.starts <= now:
+                            continue
+                        if judge_bet(b, min_edge):
+                            out.append(b)
+            return out
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+            bets = [b for chunk in pool.map(one, leagues) for b in chunk]
+        # One pick per market: if both sides somehow qualify, keep the bigger edge.
+        best: dict[str, Bet] = {}
+        for b in bets:
+            if b.ticker not in best or b.edge > best[b.ticker].edge:
+                best[b.ticker] = b
+        return sorted(best.values(), key=lambda b: -b.edge)

@@ -44,8 +44,9 @@ class OddsAPIClient:
     def __exit__(self, *exc):
         self.close()
 
-    def moneylines(self, sport_key: str) -> OddsResult:
-        params = {"apiKey": self._key, "markets": "h2h", "oddsFormat": "american", "dateFormat": "iso"}
+    def moneylines(self, sport_key: str, markets: str = "h2h") -> OddsResult:
+        """Each game's odds. markets="h2h,spreads,totals" adds main spreads/totals (each market costs a request)."""
+        params = {"apiKey": self._key, "markets": markets, "oddsFormat": "american", "dateFormat": "iso"}
         resp = self._http.get(f"/sports/{sport_key}/odds", params=params | {"bookmakers": self._bookmakers})
         if resp.status_code == 422:  # a bookmaker name it doesn't know: fall back to every US book
             resp = self._http.get(f"/sports/{sport_key}/odds", params=params | {"regions": "us"})

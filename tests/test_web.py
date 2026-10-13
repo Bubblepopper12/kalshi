@@ -307,8 +307,8 @@ def test_picks_page_shows_a_pick_with_reasons(env, exchange, fake, monkeypatch):
     login(web)
     r = web.get("/")
     best = r.text.split("Every game")[0]
-    assert "Best picks" in best and "Philadelphia wins" in best and "Dallas wins" not in best
-    assert "cheaper on Kalshi" in best and "Sportsbooks say" in best and "65% chance" in best
+    assert 'class="slip' in best and "Philadelphia wins" in best and "Dallas wins" not in best
+    assert "Worth <b>65." in best and "Fair chance" in best and 'data-kind="winner"' in best
     assert "Pinnacle" in best and "480 sportsbook lookups left" in r.text
     assert "/bet?ticker=KXNFLGAME-26OCT18DALPHI-PHI&amp;side=yes&amp;contracts=" in best and "price=" not in best
     every = r.text.split("Every game")[1]
@@ -331,8 +331,8 @@ def test_picks_page_no_strong_picks(env, exchange, fake, monkeypatch):
     handler, _ = odds_feed(books=((-130, 110), (-135, 115)))  # Philadelphia ~55%: Kalshi's 58c is too dear
     web = picks_web(fake, exchange, handler)
     login(web)
-    assert "No strong picks in NFL right now" in web.get("/?league=NFL").text
-    assert "No strong picks in all leagues right now" in web.get("/").text
+    assert "No picks in NFL right now" in web.get("/?league=NFL").text
+    assert "No picks in all leagues right now" in web.get("/").text
 
 
 def test_bet_link_prefills_contracts_and_price(web):
@@ -373,7 +373,7 @@ def test_in_progress_games_are_listed_not_compared(env, exchange, fake, monkeypa
     web = TestClient(app, base_url="https://testserver")
     login(web)
     r = web.get("/")
-    assert "1 already started" in r.text and "in progress" in r.text and "No strong picks" in r.text
+    assert "1 already started" in r.text and "in progress" in r.text and "No picks in" in r.text
 
 
 def test_patient_price_rules():

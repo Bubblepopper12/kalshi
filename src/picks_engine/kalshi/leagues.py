@@ -126,7 +126,7 @@ def get_league(code: str) -> League:
         raise SystemExit(f"Unknown league {code!r}. Choose from: {', '.join(LEAGUES)}") from None
 
 
-GAME_SUFFIX = {"moneyline": "GAME", "spread": "SPREAD", "total": "TOTAL"}
+GAME_SUFFIX = {"moneyline": "GAME", "spread": "SPREAD", "total": "TOTAL", "btts": "BTTS"}
 _PARTIAL_TITLE = re.compile(r"\b(1st|2nd|3rd|4th|first|second|third|fourth)\s+(half|quarter|period)\b"
                             r"|\bhalftime\b|\bquarter\b", re.I)
 

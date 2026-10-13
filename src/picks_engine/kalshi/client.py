@@ -176,6 +176,15 @@ def price_field(obj: dict, name: str) -> Decimal | None:
     return Decimal(str(cents)) / 100
 
 
+def amount_field(obj: dict, name: str) -> Decimal | None:
+    """A contract count that may be fractional: Kalshi's fixed-point `<name>_fp` ("0.43") first, then `<name>`."""
+    for key in (f"{name}_fp", name):
+        val = obj.get(key)
+        if val not in (None, ""):
+            return Decimal(str(val))
+    return None
+
+
 def count_field(obj: dict, name: str) -> int | None:
     for key in (name, f"{name}_fp"):
         val = obj.get(key)

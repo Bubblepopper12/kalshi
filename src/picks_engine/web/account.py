@@ -10,7 +10,7 @@ import httpx
 
 from ..config import Settings
 from ..kalshi.classify import classify
-from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
+from ..kalshi.client import KalshiReadOnlyClient, amount_field, count_field, price_field
 from ..trading.client import KalshiTradingClient
 from ..trading.limits import max_cost
 from ..live.board import combo_legs, outcome_text
@@ -33,9 +33,9 @@ def committed_today(client: KalshiTradingClient, settings: Settings) -> tuple[De
             except ValueError:
                 pass
         side = f.get("side") or "yes"
-        px, n = price_field(f, f"{side}_price"), count_field(f, "count")
+        px, n = price_field(f, f"{side}_price"), amount_field(f, "count")
         if px is not None and n:
-            total += max_cost(n, px, settings.kalshi_fee_rate)
+            total += max_cost(max(int(n.to_integral_value(rounding="ROUND_CEILING")), 1), px, settings.kalshi_fee_rate)
     resting = [o for o in client.orders("resting") if (o.get("action") or "buy") == "buy"]
     for o in resting:
         side = o.get("side") or "yes"
@@ -87,7 +87,7 @@ def lookup_names(rc: KalshiReadOnlyClient, tickers: list[str]) -> dict[str, Mark
 class Holding:
     name: MarketName
     side: str  # yes | no
-    contracts: int
+    contracts: Decimal
 
     @property
     def pays_if_right(self) -> Decimal:
@@ -102,7 +102,7 @@ class Holding:
 def holdings(positions: list[dict], names: dict[str, MarketName]) -> list[Holding]:
     out = []
     for p in positions:
-        n = count_field(p, "position")
+        n = amount_field(p, "position")
         if not n:
             continue
         ticker = p.get("ticker", "")

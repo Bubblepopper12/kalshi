@@ -53,6 +53,16 @@ def money(value: Decimal | float | int) -> str:
     return f"${Decimal(str(value)):,.2f}"
 
 
+def qty(value) -> str:
+    """Contracts: whole numbers as "21", fractional ones as "0.43" (Kalshi allows fractions)."""
+    if value is None:
+        return "0"
+    d = Decimal(str(value))
+    if d == d.to_integral_value():
+        return f"{int(d):,}"
+    return f"{d.normalize():,f}".rstrip("0").rstrip(".")
+
+
 def cents(value: Decimal | None) -> str:
     return "—" if value is None else f"{Decimal(value) * 100:.0f}¢"
 

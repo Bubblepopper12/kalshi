@@ -29,7 +29,7 @@ from decimal import Decimal
 
 from .history import _ET, _close
 from .kalshi.classify import classify, parse_event_ticker
-from .kalshi.client import count_field, price_field
+from .kalshi.client import amount_field, price_field
 from .kalshi.leagues import LEAGUES, League
 from .live.board import outcome_text
 from .live.teams import is_draw
@@ -48,7 +48,7 @@ class Fill:
     ticker: str
     side: str  # yes | no
     action: str  # buy | sell
-    contracts: int
+    contracts: Decimal  # can be fractional
     price: Decimal  # per contract, dollars, for `side`
     fee: Decimal  # per contract, dollars
     at: datetime
@@ -76,7 +76,7 @@ def parse_fill(f: dict, taker_rate: float = 0.07, maker_rate: float = 0.0175) ->
     price = price_field(f, f"{side}_price")
     if price is None and f.get(f"{side}_price_fixed") not in (None, ""):
         price = Decimal(str(f[f"{side}_price_fixed"]))
-    n = count_field(f, "count")
+    n = amount_field(f, "count")
     at = _when(f.get("created_time")) or _when(f.get("ts"))
     if price is None or not n or at is None:
         return None
@@ -89,8 +89,32 @@ def parse_fill(f: dict, taker_rate: float = 0.07, maker_rate: float = 0.0175) ->
             total /= 100
         fee = total / n
     if fee is None:
-        fee = Decimal(str(fee_per_contract(float(price), n, taker_rate if taker else maker_rate)))
+        fee = Decimal(str(fee_per_contract(float(price), float(n), taker_rate if taker else maker_rate)))
     return Fill(f.get("ticker", ""), side, f.get("action") or "buy", n, price, fee, at, taker)
+
+
+def merge_fills(fills: list[tuple[dict, Fill]]) -> list[tuple[dict, Fill]]:
+    """One line per order: Kalshi splits an order into several fills (one per seller it matched)."""
+    groups: dict[tuple, list[tuple[dict, Fill]]] = {}
+    for raw, f in fills:
+        key = (raw.get("order_id") or id(raw), f.ticker, f.side, f.action)
+        groups.setdefault(key, []).append((raw, f))
+    out = []
+    for parts in groups.values():
+        raw, first = parts[0]
+        n = sum((f.contracts for _, f in parts), Decimal(0))
+        if n <= 0:
+            continue
+        price = sum((f.price * f.contracts for _, f in parts), Decimal(0)) / n
+        fee = sum((f.fee * f.contracts for _, f in parts), Decimal(0)) / n
+        out.append((raw, Fill(first.ticker, first.side, first.action, n, price, fee,
+                              min(f.at for _, f in parts), all(f.taker for _, f in parts))))
+    return sorted(out, key=lambda x: x[1].at, reverse=True)
+
+
+def fills_from(raw: list[dict], taker_rate: float = 0.07, maker_rate: float = 0.0175) -> list[Fill]:
+    parsed = [(r, f) for r in raw if (f := parse_fill(r, taker_rate, maker_rate)) is not None]
+    return [f for _, f in merge_fills(parsed)]
 
 
 @dataclass
@@ -127,7 +151,7 @@ class Grade:
 
     @property
     def expected(self) -> float | None:
-        return None if self.edge is None else self.edge / 100 * self.fill.contracts
+        return None if self.edge is None else self.edge / 100 * float(self.fill.contracts)
 
     @property
     def actual(self) -> float | None:
@@ -136,7 +160,7 @@ class Grade:
         payout = 1.0 if self.result == "won" else 0.0
         c = float(self.fill.cost)
         per = (payout - c) if self.fill.action == "buy" else (-c - payout)
-        return per * self.fill.contracts
+        return per * float(self.fill.contracts)
 
 
 @dataclass
@@ -148,13 +172,13 @@ class Summary:
         return [g for g in self.grades if g.graded]
 
     @property
-    def contracts(self) -> int:
-        return sum(g.fill.contracts for g in self.graded)
+    def contracts(self) -> float:
+        return sum(float(g.fill.contracts) for g in self.graded)
 
     @property
     def avg_edge(self) -> float | None:
         n = self.contracts
-        return sum(g.edge * g.fill.contracts for g in self.graded) / n if n else None
+        return sum(g.edge * float(g.fill.contracts) for g in self.graded) / n if n else None
 
     @property
     def expected(self) -> float:
@@ -182,7 +206,7 @@ class Summary:
         var = 0.0
         for g in self.settled:
             p = min(max(g.fair, 0.0), 1.0)
-            var += (g.fill.contracts ** 2) * p * (1 - p)
+            var += (float(g.fill.contracts) ** 2) * p * (1 - p)
         return math.sqrt(var)
 
     @property

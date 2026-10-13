@@ -43,7 +43,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse,
 
 from .. import grading
 from ..config import Settings
-from ..kalshi.client import KalshiReadOnlyClient, count_field, price_field
+from ..kalshi.client import KalshiReadOnlyClient, amount_field, count_field, price_field
 from ..kalshi.leagues import LEAGUES
 from ..live import espn
 from ..live.odds_api import OddsAPIError
@@ -53,7 +53,7 @@ from ..trading.client import KalshiAPIError, KalshiTradingClient, TradingNotConf
 from ..trading.limits import max_cost, static_checks
 from .account import committed_today, holdings, lookup_names, name_market
 from .data import QUOTA_FLOOR, Sources, clear_caches
-from .describe import KIND_LABELS, bet_sentence, cents, local_zone, money, when
+from .describe import KIND_LABELS, bet_sentence, cents, local_zone, money, qty, when
 from .security import (COOKIE, MIN_PASSWORD_LENGTH, SESSION_HOURS, _password, _totp_secret, sign,  # noqa: F401
                        totp_code, totp_ok, verify)
 from .ui import esc, page, steps
@@ -65,6 +65,7 @@ TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9._-]{2,127}$")
 MAX_GAMES = 300
 MAX_ALL_BOARD = 60
 MAX_GRADED = 60  # most recent markets graded per page load
+RECENT_GRADED = 8  # orders graded on the Account page
 RESEARCH_DIR = Path(os.environ.get("RESEARCH_DIR") or Path(__file__).resolve().parents[3] / "research" / "reports")
 TAGS = {"edge": ("pos", "Edge found"), "watch": ("lean", "Worth watching"), "none": ("neg", "No edge"),
         "few": ("warn", "Too few games"), "check": ("warn", "Needs checking"), "kalshi-only": ("neg", "Kalshi-only test"), "error": ("bad", "Not loaded")}
@@ -199,13 +200,14 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
                 committed, open_n = committed_today(c, s)
                 positions = c.positions()
                 resting = c.orders("resting")
-                fills = c.fills()[:10]
+                recent = grading.fills_from(c.fills(), s.kalshi_fee_rate, s.kalshi_maker_fee_rate)[:RECENT_GRADED]
         except TRADING_ERRORS as exc:
             return page(s, "My account", f'<h1>My account</h1><div class="card bad">Couldn\'t read your Kalshi account: '
                         f'{esc(exc)}</div>', tab="home")
         with market_client(s) as rc:
-            names = lookup_names(rc, [p.get("ticker") for p in positions if count_field(p, "position")]
-                                 + [o.get("ticker") for o in resting] + [f.get("ticker") for f in fills])
+            names = lookup_names(rc, [p.get("ticker") for p in positions if amount_field(p, "position")]
+                                 + [o.get("ticker") for o in resting])
+            graded = grading.grade(recent, grade_lookups(s, rc), now=now_utc())
         held = holdings(positions, names)
         halted = os.environ.get("TRADING_HALTED") == "1"
         left_today = max(Decimal(str(s.max_daily_dollars)) - committed, Decimal(0))
@@ -229,7 +231,7 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
             worth = f" · worth about {money(h.worth_now)} now" if h.worth_now is not None else ""
             rows.append(f'''<div class="row"><div class="what"><b>{esc(bet_sentence(h.name.statement, h.side))}</b>
 <span class="muted small">{esc(h.name.question)}</span><br>
-<span class="small">{h.contracts:,} contracts · pays {money(h.pays_if_right)} if right{worth}</span></div></div>''')
+<span class="small">{qty(h.contracts)} contracts · pays {money(h.pays_if_right)} if right{worth}</span></div></div>''')
         parts.append('<div class="card"><h2>Your bets</h2>' + ("".join(rows) or
                      '<p class="muted">No open bets.</p>') + "</div>")
 
@@ -245,15 +247,11 @@ The price (like 62¢) is roughly the chance the market gives it (62%).</p></deta
                      'haven\'t filled yet. They cancel themselves after a few minutes.</p>'
                      + ("".join(rows) or '<p class="muted">None right now.</p>') + "</div>")
 
-        rows = []
-        for f in fills:
-            side = f.get("side") or "yes"
-            nm = names.get(f.get("ticker", ""))
-            verb = "Bought" if (f.get("action") or "buy") == "buy" else "Sold"
-            rows.append(f'''<div class="row"><div class="what"><b>{esc(bet_sentence(nm.statement if nm else f.get("ticker"), side))}</b>
-<span class="small">{verb} {count_field(f, "count") or 0} at {cents(price_field(f, side + "_price"))} · {esc(when(f.get("created_time")))}</span></div></div>''')
-        parts.append('<div class="card"><h2>Recent activity</h2>' + ("".join(rows) or
-                     '<p class="muted">Nothing yet.</p>') + "</div>")
+        parts.append('<div class="card"><h2>Recent trades, graded</h2><p class="muted small">Each grade is how much '
+                     'less (or more) you paid than the bet was worth at kickoff, fees included. Winning or losing '
+                     'doesn\'t change it. <a href="/grades">All grades and your luck →</a></p>'
+                     + ("".join(grade_card(g) for g in graded.grades) or '<p class="muted">Nothing yet.</p>')
+                     + "</div>")
         parts.append(how)
         return page(s, "My account", "".join(parts), tab="home")
 
@@ -559,10 +557,10 @@ Results show up here a couple of minutes after it finishes.</p></div>''')
                 committed, _ = committed_today(c, s)
                 positions = c.positions()
             with market_client(s) as rc:
-                names = lookup_names(rc, [p.get("ticker") for p in positions if count_field(p, "position")])
+                names = lookup_names(rc, [p.get("ticker") for p in positions if amount_field(p, "position")])
             return {"cash_dollars": float(cash), "spent_today_dollars": float(committed),
                     "daily_limit_dollars": s.max_daily_dollars, "max_per_bet_dollars": s.max_order_dollars,
-                    "open_bets": [{"bet": bet_sentence(h.name.statement, h.side), "contracts": h.contracts,
+                    "open_bets": [{"bet": bet_sentence(h.name.statement, h.side), "contracts": float(h.contracts),
                                    "pays_if_right": float(h.pays_if_right)} for h in holdings(positions, names)]}
 
         league = {"type": "string", "enum": ["ALL", *LEAGUES], "description": "League code, or ALL for every league"}
@@ -631,7 +629,7 @@ bet until you review and approve it.</p></div>''', tab="picks")
         verb = "Bought" if f.action == "buy" else "Sold"
         side = "" if f.side == "yes" else " (NO side)"
         cls = {"A": "pos", "B": "lean", "C": "neg", "D": "warn", "F": "bad"}.get(g.letter, "neg")
-        lines = [f"{verb} {f.contracts:,} at {f.price * 100:.1f}¢ + {f.fee * 100:.1f}¢ fee · "
+        lines = [f"{verb} {qty(f.contracts)} at {f.price * 100:.1f}¢ + {f.fee * 100:.1f}¢ fee · "
                  f"{esc(when(f.at))}"]
         if g.graded:
             moment = "now" if g.kind == "future" else "at kickoff"
@@ -669,7 +667,7 @@ bet until you review and approve it.</p></div>''', tab="picks")
         except TRADING_ERRORS as exc:
             return page(s, "Grades", f'<h1>Grades</h1><div class="card bad">Couldn\'t read your trades: {esc(exc)}'
                         '</div>', tab="home")
-        fills = [f for f in (grading.parse_fill(x, s.kalshi_fee_rate, s.kalshi_maker_fee_rate) for x in raw) if f]
+        fills = grading.fills_from(raw, s.kalshi_fee_rate, s.kalshi_maker_fee_rate)
         recent = list(dict.fromkeys(f.ticker for f in sorted(fills, key=lambda f: f.at, reverse=True)))[:MAX_GRADED]
         fills = [f for f in fills if f.ticker in recent]
         with market_client(s) as rc:

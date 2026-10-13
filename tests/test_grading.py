@@ -195,3 +195,19 @@ def test_grades_page(monkeypatch):
     assert "1 of 1" in r.text  # beat the closing price
     assert "after the game started" in r.text  # the in-game Dallas bet isn't graded
     assert "Won: +$4.62" in r.text
+
+
+def test_fractional_fills_merge_into_one_order():
+    at = "2026-10-12T20:41:00Z"
+    raw = [{"ticker": PHI, "side": "yes", "action": "buy", "count_fp": "0.43", "count": 0, "yes_price": 19,
+            "created_time": at, "order_id": "o1"},
+           {"ticker": PHI, "side": "yes", "action": "buy", "count_fp": "10.00", "yes_price": 20,
+            "created_time": at, "order_id": "o1"},
+           {"ticker": PHI, "side": "yes", "action": "buy", "count": 21, "yes_price": 20, "created_time": at,
+            "order_id": "o2"}]
+    fills = grading.fills_from(raw)
+    assert [f.contracts for f in fills] in ([Decimal("10.43"), Decimal("21")], [Decimal("21"), Decimal("10.43")])
+    one = next(f for f in fills if f.contracts == Decimal("10.43"))
+    assert one.price == (Decimal("0.19") * Decimal("0.43") + Decimal("0.20") * 10) / Decimal("10.43")
+    from picks_engine.web.describe import qty
+    assert qty(Decimal("10.43")) == "10.43" and qty(Decimal("21")) == "21" and qty(Decimal("0.4300")) == "0.43"

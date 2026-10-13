@@ -1,0 +1,16 @@
+# Read-only: prints a few live Kalshi line markets per league (Actions → Inspect lines → Run workflow).
+name: Inspect lines
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . tzdata
+      - run: python scripts/inspect_lines.py

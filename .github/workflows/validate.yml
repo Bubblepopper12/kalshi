@@ -1,0 +1,17 @@
+# Read-only: tests the pricing models against real results and Kalshi's own prices (Actions → Validate models).
+name: Validate models
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . tzdata
+      - run: python scripts/validate_models.py kalshi
+      - run: python scripts/validate_models.py soccer

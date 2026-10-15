@@ -1,4 +1,4 @@
-# Kalshi research: all leagues (Oct 14, 2026)
+# Kalshi research: all leagues (Oct 15, 2026)
 
 Finished games since Aug 1, 2025. Every price is Kalshi's last price before the game, and every return includes Kalshi's fee.
 

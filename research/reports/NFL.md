@@ -1,6 +1,6 @@
-# Kalshi NFL history test (Oct 15, 2026)
+# Kalshi NFL history test (Oct 16, 2026)
 
-906 finished winner markets, priced before each game.
+908 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -12,8 +12,8 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | 10–20¢ | 43 | 15% | 5% | -10.9% |
 | 20–30¢ | 91 | 25% | 27% | +1.2% |
 | 30–40¢ | 141 | 35% | 43% | +6.4% |
-| 40–50¢ | 166 | 44% | 46% | +0.4% |
-| 50–60¢ | 147 | 55% | 49% | -7.9% |
+| 40–50¢ | 167 | 44% | 47% | +0.7% |
+| 50–60¢ | 148 | 55% | 49% | -8.2% |
 | 60–70¢ | 153 | 64% | 59% | -5.9% |
 | 70–80¢ | 108 | 74% | 70% | -5.1% |
 | 80–90¢ | 47 | 84% | 85% | -0.2% |
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from nflverse (closing moneylines).
 
-720 Kalshi prices matched with closing sportsbook lines.
+722 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.624, sportsbooks 0.617.
+Prediction error (log loss, lower is better): Kalshi 0.624, sportsbooks 0.618.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 70 | 53 | -1.2% |
+| Kalshi any points cheaper than the books | 71 | 53 | -2.0% |
 | Kalshi 3+ points cheaper than the books | 3 | 2 | +36.0% |
 | Kalshi 5+ points cheaper than the books | 2 | 1 | +48.9% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 718 | 2.3 pts | 27 | 19 | +4.7% |
-| 48 h | 718 | 2.0 pts | 17 | 10 | -6.5% |
-| 24 h | 718 | 1.7 pts | 9 | 7 | +4.0% |
-| 6 h | 718 | 1.4 pts | 6 | 3 | -19.6% |
-| 1 h | 718 | 1.2 pts | 1 | 1 | +10.3% |
+| 72 h | 720 | 2.3 pts | 27 | 19 | +4.7% |
+| 48 h | 720 | 2.0 pts | 17 | 10 | -6.5% |
+| 24 h | 720 | 1.7 pts | 9 | 7 | +4.0% |
+| 6 h | 720 | 1.4 pts | 6 | 3 | -19.6% |
+| 1 h | 720 | 1.2 pts | 1 | 1 | +10.3% |

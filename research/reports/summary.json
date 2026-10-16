@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-16T15:01:42+00:00",
+  "generated": "2026-10-16T15:01:56+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -99,17 +99,17 @@
     {
       "code": "CFB",
       "name": "College football / CFP",
-      "markets": 3376,
-      "games": 1726,
+      "markets": 3382,
+      "games": 1729,
       "source": "",
       "tag": "kalshi-only",
       "verdict": "Kalshi-only test (no free sportsbook history for this league).",
       "points": [
-        "Cheap long shots (under 20\u00a2): 791 bets, 10% won, +1.9% per bet.",
-        "Big favorites (70\u00a2 and up): 1039 bets, 86% won, -0.6% per bet."
+        "Cheap long shots (under 20\u00a2): 792 bets, 10% won, +1.9% per bet.",
+        "Big favorites (70\u00a2 and up): 1040 bets, 86% won, -0.6% per bet."
       ],
       "error": "",
-      "updated": "2026-10-15T15:21:30+00:00",
+      "updated": "2026-10-16T15:01:56+00:00",
       "buckets": [
         [
           0,
@@ -120,10 +120,10 @@
         ],
         [
           10,
-          289,
-          43.07000000000001,
+          290,
+          43.230000000000004,
           41,
-          -4.725999999999991
+          -4.895999999999991
         ],
         [
           20,
@@ -134,31 +134,31 @@
         ],
         [
           30,
-          324,
-          111.82999999999981,
-          108,
-          -9.075000000000008
+          325,
+          112.17999999999981,
+          109,
+          -8.441000000000008
         ],
         [
           40,
-          311,
-          137.87000000000003,
+          312,
+          138.29000000000002,
           132,
-          -11.406999999999993
+          -11.844999999999994
         ],
         [
           50,
-          285,
-          156.9000000000001,
-          159,
-          -3.004000000000005
+          286,
+          157.4900000000001,
+          160,
+          -2.611000000000005
         ],
         [
           60,
-          320,
-          206.46999999999986,
+          321,
+          207.11999999999986,
           196,
-          -15.720000000000036
+          -16.386000000000035
         ],
         [
           70,
@@ -169,10 +169,10 @@
         ],
         [
           80,
-          303,
-          256.09000000000015,
-          256,
-          -2.964000000000003
+          304,
+          256.94000000000017,
+          257,
+          -2.823000000000003
         ],
         [
           90,
@@ -928,19 +928,19 @@
   "pooled": [
     "## All leagues together",
     "",
-    "16,040 Kalshi markets from 6,571 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "16,046 Kalshi markets from 6,574 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 792 | 5% | 7% | +1.8% |",
-    "| 10\u201320\u00a2 | 1732 | 15% | 14% | -1.7% |",
+    "| 10\u201320\u00a2 | 1733 | 15% | 14% | -1.7% |",
     "| 20\u201330\u00a2 | 3886 | 25% | 25% | -1.7% |",
-    "| 30\u201340\u00a2 | 2553 | 34% | 33% | -2.5% |",
-    "| 40\u201350\u00a2 | 1910 | 44% | 46% | -0.3% |",
-    "| 50\u201360\u00a2 | 1544 | 55% | 52% | -4.4% |",
-    "| 60\u201370\u00a2 | 1355 | 64% | 62% | -3.7% |",
+    "| 30\u201340\u00a2 | 2554 | 34% | 33% | -2.5% |",
+    "| 40\u201350\u00a2 | 1911 | 44% | 46% | -0.3% |",
+    "| 50\u201360\u00a2 | 1545 | 55% | 52% | -4.4% |",
+    "| 60\u201370\u00a2 | 1356 | 64% | 62% | -3.8% |",
     "| 70\u201380\u00a2 | 1016 | 74% | 73% | -2.2% |",
-    "| 80\u201390\u00a2 | 710 | 84% | 83% | -1.9% |",
+    "| 80\u201390\u00a2 | 711 | 84% | 83% | -1.8% |",
     "| 90\u2013100\u00a2 | 542 | 95% | 96% | +1.0% |",
     "",
     "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 47 bets, 21 won, +1.2% per bet after fees.",

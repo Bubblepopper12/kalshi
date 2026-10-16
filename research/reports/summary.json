@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-16T15:02:25+00:00",
+  "generated": "2026-10-16T15:02:34+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -460,16 +460,16 @@
       "markets": 1836,
       "games": 612,
       "source": "football-data.co.uk (Pinnacle closing odds)",
-      "tag": "none",
-      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 28 times in 1,596 prices).",
+      "tag": "watch",
+      "verdict": "Worth watching: positive so far, but not enough bets to trust.",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1596 prices compared).",
-        "Buying whenever Kalshi was 3+ points cheaper than the books: 28 bets, 15 won, +5.4% per bet after fees.",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1635 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 32 bets, 18 won, +7.5% per bet after fees.",
         "Cheap long shots (under 20\u00a2): 185 bets, 17% won, -0.3% per bet.",
         "Big favorites (70\u00a2 and up): 41 bets, 68% won, -7.1% per bet."
       ],
       "error": "",
-      "updated": "2026-10-15T15:22:20+00:00",
+      "updated": "2026-10-16T15:02:34+00:00",
       "buckets": [
         [
           0,
@@ -543,9 +543,9 @@
         ]
       ],
       "rule3": [
-        28,
-        15,
-        1.5259999999999994
+        32,
+        18,
+        2.4049999999999994
       ]
     },
     {
@@ -943,7 +943,7 @@
     "| 80\u201390\u00a2 | 711 | 84% | 83% | -1.8% |",
     "| 90\u2013100\u00a2 | 542 | 95% | 96% | +1.0% |",
     "",
-    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 47 bets, 21 won, +1.2% per bet after fees.",
+    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 51 bets, 24 won, +2.9% per bet after fees.",
     ""
   ]
 }

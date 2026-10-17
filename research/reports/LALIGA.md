@@ -1,6 +1,6 @@
-# Kalshi La Liga history test (Oct 16, 2026)
+# Kalshi La Liga history test (Oct 17, 2026)
 
-1367 finished winner markets, priced before each game.
+1373 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -9,11 +9,11 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 56 | 6% | 2% | -4.9% |
-| 10–20¢ | 157 | 15% | 16% | -0.2% |
-| 20–30¢ | 419 | 26% | 23% | -3.5% |
+| 10–20¢ | 158 | 15% | 16% | -0.3% |
+| 20–30¢ | 422 | 26% | 23% | -3.5% |
 | 30–40¢ | 357 | 33% | 31% | -4.0% |
-| 40–50¢ | 163 | 44% | 47% | +1.2% |
-| 50–60¢ | 103 | 55% | 52% | -3.9% |
+| 40–50¢ | 164 | 44% | 47% | +0.9% |
+| 50–60¢ | 104 | 55% | 53% | -3.5% |
 | 60–70¢ | 45 | 64% | 67% | +1.0% |
 | 70–80¢ | 38 | 74% | 76% | +0.7% |
 | 80–90¢ | 24 | 83% | 100% | +16.3% |

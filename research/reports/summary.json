@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-19T17:13:01+00:00",
+  "generated": "2026-10-19T17:13:15+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -551,54 +551,54 @@
     {
       "code": "LALIGA",
       "name": "La Liga",
-      "markets": 1385,
-      "games": 463,
+      "markets": 1394,
+      "games": 466,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 3 times in 1,355 prices).",
       "points": [
         "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1355 prices compared).",
         "Buying whenever Kalshi was 3+ points cheaper than the books: 3 bets, 1 won, -2.2% per bet after fees.",
-        "Cheap long shots (under 20\u00a2): 218 bets, 12% won, -1.4% per bet.",
-        "Big favorites (70\u00a2 and up): 67 bets, 87% won, +6.9% per bet."
+        "Cheap long shots (under 20\u00a2): 220 bets, 12% won, -1.5% per bet.",
+        "Big favorites (70\u00a2 and up): 68 bets, 87% won, +7.1% per bet."
       ],
       "error": "",
-      "updated": "2026-10-18T14:12:32+00:00",
+      "updated": "2026-10-19T17:13:15+00:00",
       "buckets": [
         [
           0,
-          56,
-          3.51,
+          57,
+          3.5999999999999996,
           1,
-          -2.7630000000000017
+          -2.8590000000000018
         ],
         [
           10,
-          162,
-          24.730000000000004,
+          163,
+          24.870000000000005,
           26,
-          -0.25100000000000244
+          -0.40000000000000246
         ],
         [
           20,
-          424,
-          108.39000000000024,
+          426,
+          108.94000000000024,
           99,
-          -15.265000000000015
+          -15.844000000000015
         ],
         [
           30,
-          359,
-          119.08999999999978,
+          361,
+          119.70999999999978,
           111,
-          -13.783999999999999
+          -14.433999999999997
         ],
         [
           40,
-          166,
-          73.46000000000001,
-          78,
-          1.587999999999999
+          168,
+          74.33000000000001,
+          80,
+          2.681999999999999
         ],
         [
           50,
@@ -623,10 +623,10 @@
         ],
         [
           80,
-          24,
-          19.830000000000002,
-          24,
-          3.917999999999999
+          25,
+          20.630000000000003,
+          25,
+          4.105999999999999
         ],
         [
           90,
@@ -928,19 +928,19 @@
   "pooled": [
     "## All leagues together",
     "",
-    "16,452 Kalshi markets from 6,755 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "16,461 Kalshi markets from 6,758 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
-    "| 0\u201310\u00a2 | 805 | 5% | 7% | +1.9% |",
-    "| 10\u201320\u00a2 | 1777 | 15% | 15% | -1.6% |",
-    "| 20\u201330\u00a2 | 3970 | 25% | 25% | -1.6% |",
-    "| 30\u201340\u00a2 | 2613 | 34% | 33% | -2.3% |",
-    "| 40\u201350\u00a2 | 1954 | 44% | 46% | -0.3% |",
+    "| 0\u201310\u00a2 | 806 | 5% | 7% | +1.9% |",
+    "| 10\u201320\u00a2 | 1778 | 15% | 15% | -1.7% |",
+    "| 20\u201330\u00a2 | 3972 | 25% | 25% | -1.7% |",
+    "| 30\u201340\u00a2 | 2615 | 34% | 33% | -2.3% |",
+    "| 40\u201350\u00a2 | 1956 | 44% | 46% | -0.3% |",
     "| 50\u201360\u00a2 | 1586 | 55% | 52% | -4.4% |",
     "| 60\u201370\u00a2 | 1402 | 64% | 62% | -4.3% |",
     "| 70\u201380\u00a2 | 1053 | 74% | 74% | -2.0% |",
-    "| 80\u201390\u00a2 | 735 | 84% | 83% | -2.1% |",
+    "| 80\u201390\u00a2 | 736 | 84% | 83% | -2.1% |",
     "| 90\u2013100\u00a2 | 557 | 95% | 96% | +0.6% |",
     "",
     "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 51 bets, 24 won, +2.9% per bet after fees.",

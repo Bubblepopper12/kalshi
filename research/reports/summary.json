@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-19T17:14:14+00:00",
+  "generated": "2026-10-19T17:14:27+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -833,8 +833,8 @@
     {
       "code": "LIGUE1",
       "name": "Ligue 1",
-      "markets": 1095,
-      "games": 365,
+      "markets": 1110,
+      "games": 370,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 5 times in 975 prices).",
@@ -845,7 +845,7 @@
         "Big favorites (70\u00a2 and up): 52 bets, 73% won, -5.0% per bet."
       ],
       "error": "",
-      "updated": "2026-10-18T14:13:08+00:00",
+      "updated": "2026-10-19T17:14:27+00:00",
       "buckets": [
         [
           0,
@@ -863,31 +863,31 @@
         ],
         [
           20,
-          406,
-          102.5800000000001,
-          105,
-          -3.1670000000000043
+          415,
+          104.96000000000012,
+          106,
+          -4.675000000000004
         ],
         [
           30,
-          186,
-          62.07999999999998,
-          58,
-          -7.045000000000011
+          187,
+          62.38999999999998,
+          59,
+          -6.370000000000011
         ],
         [
           40,
-          116,
-          51.42999999999997,
-          58,
-          4.513000000000003
+          119,
+          52.78999999999997,
+          59,
+          4.099000000000002
         ],
         [
           50,
-          99,
-          53.52,
-          53,
-          -2.298000000000002
+          101,
+          54.56,
+          55,
+          -1.3740000000000019
         ],
         [
           60,
@@ -928,16 +928,16 @@
   "pooled": [
     "## All leagues together",
     "",
-    "16,476 Kalshi markets from 6,763 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "16,491 Kalshi markets from 6,768 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 806 | 5% | 7% | +1.9% |",
     "| 10\u201320\u00a2 | 1780 | 15% | 15% | -1.6% |",
-    "| 20\u201330\u00a2 | 3979 | 25% | 25% | -1.7% |",
-    "| 30\u201340\u00a2 | 2616 | 34% | 33% | -2.3% |",
-    "| 40\u201350\u00a2 | 1958 | 44% | 46% | -0.2% |",
-    "| 50\u201360\u00a2 | 1587 | 55% | 52% | -4.4% |",
+    "| 20\u201330\u00a2 | 3988 | 25% | 25% | -1.7% |",
+    "| 30\u201340\u00a2 | 2617 | 34% | 33% | -2.3% |",
+    "| 40\u201350\u00a2 | 1961 | 44% | 46% | -0.2% |",
+    "| 50\u201360\u00a2 | 1589 | 55% | 52% | -4.3% |",
     "| 60\u201370\u00a2 | 1404 | 64% | 62% | -4.3% |",
     "| 70\u201380\u00a2 | 1053 | 74% | 74% | -2.0% |",
     "| 80\u201390\u00a2 | 736 | 84% | 83% | -2.1% |",

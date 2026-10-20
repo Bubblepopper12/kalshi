@@ -79,9 +79,9 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## Ligue 1
 
-**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 5 times in 975 prices).**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 5 times in 999 prices).**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (975 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (999 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 5 bets, 1 won, -21.0% per bet after fees.
 - Cheap long shots (under 20¢): 176 bets, 10% won, -4.8% per bet.
 - Big favorites (70¢ and up): 52 bets, 73% won, -5.0% per bet.

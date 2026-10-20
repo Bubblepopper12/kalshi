@@ -1,6 +1,6 @@
-# Kalshi Serie A history test (Oct 19, 2026)
+# Kalshi Serie A history test (Oct 20, 2026)
 
-1344 finished winner markets, priced before each game.
+1350 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -11,8 +11,8 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | 0–10¢ | 30 | 7% | 7% | -1.3% |
 | 10–20¢ | 207 | 15% | 15% | -0.9% |
 | 20–30¢ | 366 | 25% | 23% | -3.6% |
-| 30–40¢ | 364 | 33% | 29% | -5.2% |
-| 40–50¢ | 137 | 44% | 55% | +9.4% |
+| 30–40¢ | 368 | 33% | 29% | -5.5% |
+| 40–50¢ | 139 | 44% | 56% | +10.1% |
 | 50–60¢ | 94 | 55% | 51% | -5.4% |
 | 60–70¢ | 81 | 64% | 63% | -3.2% |
 | 70–80¢ | 53 | 74% | 74% | -1.4% |
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1316 Kalshi prices matched with closing sportsbook lines.
+1346 Kalshi prices matched with closing sportsbook lines.
 
 Prediction error (log loss, lower is better): Kalshi 0.566, sportsbooks 0.566.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 73 | 32 | -1.0% |
+| Kalshi any points cheaper than the books | 78 | 35 | +1.3% |
 | Kalshi 3+ points cheaper than the books | 2 | 0 | -30.4% |
 | Kalshi 5+ points cheaper than the books | 0 | 0 | +0.0% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1287 | 1.9 pts | 25 | 12 | +6.1% |
-| 48 h | 1300 | 1.7 pts | 27 | 13 | +5.6% |
-| 24 h | 1309 | 1.6 pts | 21 | 11 | +7.4% |
-| 6 h | 1310 | 1.1 pts | 3 | 1 | +8.4% |
-| 1 h | 1316 | 1.0 pts | 2 | 0 | -30.4% |
+| 72 h | 1317 | 1.9 pts | 26 | 12 | +5.1% |
+| 48 h | 1330 | 1.7 pts | 27 | 13 | +5.6% |
+| 24 h | 1339 | 1.6 pts | 21 | 11 | +7.4% |
+| 6 h | 1340 | 1.1 pts | 3 | 1 | +8.4% |
+| 1 h | 1346 | 1.0 pts | 2 | 0 | -30.4% |

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T15:25:35+00:00",
+  "generated": "2026-10-20T15:25:46+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -743,15 +743,15 @@
       "games": 362,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
-      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 6 times in 987 prices).",
+      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 6 times in 1,014 prices).",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (987 prices compared).",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1014 prices compared).",
         "Buying whenever Kalshi was 3+ points cheaper than the books: 6 bets, 2 won, -5.0% per bet after fees.",
         "Cheap long shots (under 20\u00a2): 162 bets, 10% won, -3.8% per bet.",
         "Big favorites (70\u00a2 and up): 54 bets, 78% won, -2.1% per bet."
       ],
       "error": "",
-      "updated": "2026-10-19T17:14:14+00:00",
+      "updated": "2026-10-20T15:25:46+00:00",
       "buckets": [
         [
           0,

@@ -1,4 +1,4 @@
-# Kalshi MLS history test (Oct 20, 2026)
+# Kalshi MLS history test (Oct 21, 2026)
 
 1881 finished winner markets, priced before each game.
 

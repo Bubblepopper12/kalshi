@@ -1,4 +1,4 @@
-# Kalshi Serie A history test (Oct 22, 2026)
+# Kalshi Serie A history test (Oct 23, 2026)
 
 1350 finished winner markets, priced before each game.
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-24T14:09:55+00:00",
+  "generated": "2026-10-24T14:10:49+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -833,8 +833,8 @@
     {
       "code": "LIGUE1",
       "name": "Ligue 1",
-      "markets": 1110,
-      "games": 370,
+      "markets": 1113,
+      "games": 371,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 5 times in 999 prices).",
@@ -845,7 +845,7 @@
         "Big favorites (70\u00a2 and up): 52 bets, 73% won, -5.0% per bet."
       ],
       "error": "",
-      "updated": "2026-10-23T15:31:16+00:00",
+      "updated": "2026-10-24T14:10:49+00:00",
       "buckets": [
         [
           0,
@@ -863,24 +863,24 @@
         ],
         [
           20,
-          415,
-          104.96000000000012,
+          416,
+          105.24000000000012,
           106,
-          -4.675000000000004
+          -4.970000000000004
         ],
         [
           30,
-          187,
-          62.38999999999998,
-          59,
-          -6.370000000000011
+          188,
+          62.70999999999998,
+          60,
+          -5.706000000000011
         ],
         [
           40,
-          119,
-          52.78999999999997,
+          120,
+          53.20999999999997,
           59,
-          4.099000000000002
+          3.661000000000002
         ],
         [
           50,
@@ -928,15 +928,15 @@
   "pooled": [
     "## All leagues together",
     "",
-    "16,669 Kalshi markets from 6,842 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "16,672 Kalshi markets from 6,843 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 810 | 5% | 7% | +1.9% |",
     "| 10\u201320\u00a2 | 1800 | 15% | 15% | -1.5% |",
-    "| 20\u201330\u00a2 | 4027 | 25% | 25% | -1.7% |",
-    "| 30\u201340\u00a2 | 2638 | 34% | 33% | -2.2% |",
-    "| 40\u201350\u00a2 | 1991 | 44% | 46% | -0.4% |",
+    "| 20\u201330\u00a2 | 4028 | 25% | 25% | -1.7% |",
+    "| 30\u201340\u00a2 | 2639 | 34% | 33% | -2.2% |",
+    "| 40\u201350\u00a2 | 1992 | 44% | 46% | -0.4% |",
     "| 50\u201360\u00a2 | 1610 | 55% | 52% | -4.2% |",
     "| 60\u201370\u00a2 | 1422 | 64% | 61% | -4.4% |",
     "| 70\u201380\u00a2 | 1070 | 74% | 73% | -2.3% |",

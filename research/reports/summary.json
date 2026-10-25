@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-25T14:37:59+00:00",
+  "generated": "2026-10-25T14:38:12+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -739,19 +739,19 @@
     {
       "code": "BUNDESLIGA",
       "name": "Bundesliga",
-      "markets": 1089,
-      "games": 363,
+      "markets": 1107,
+      "games": 369,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 6 times in 1,014 prices).",
       "points": [
         "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1014 prices compared).",
         "Buying whenever Kalshi was 3+ points cheaper than the books: 6 bets, 2 won, -5.0% per bet after fees.",
-        "Cheap long shots (under 20\u00a2): 164 bets, 11% won, -3.4% per bet.",
+        "Cheap long shots (under 20\u00a2): 168 bets, 11% won, -3.7% per bet.",
         "Big favorites (70\u00a2 and up): 55 bets, 76% won, -3.4% per bet."
       ],
       "error": "",
-      "updated": "2026-10-24T14:09:55+00:00",
+      "updated": "2026-10-25T14:38:12+00:00",
       "buckets": [
         [
           0,
@@ -762,45 +762,45 @@
         ],
         [
           10,
-          129,
-          19.800000000000004,
+          133,
+          20.490000000000006,
           16,
-          -5.017
+          -5.747999999999999
         ],
         [
           20,
-          420,
-          105.44000000000007,
-          100,
-          -11.199000000000003
+          427,
+          107.19000000000007,
+          103,
+          -10.045000000000005
         ],
         [
           30,
-          185,
-          63.68000000000003,
+          186,
+          64.02000000000002,
           59,
-          -7.672000000000009
+          -8.02800000000001
         ],
         [
           40,
-          115,
-          50.52999999999999,
-          54,
-          1.4300000000000015
+          117,
+          51.40999999999998,
+          55,
+          1.5150000000000015
         ],
         [
           50,
-          100,
-          53.75000000000002,
+          102,
+          54.880000000000024,
           55,
-          -0.5390000000000019
+          -1.705000000000002
         ],
         [
           60,
-          50,
-          31.950000000000006,
-          35,
-          2.221999999999998
+          52,
+          33.290000000000006,
+          37,
+          2.849999999999998
         ],
         [
           70,
@@ -928,17 +928,17 @@
   "pooled": [
     "## All leagues together",
     "",
-    "16,953 Kalshi markets from 6,972 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "16,971 Kalshi markets from 6,978 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 819 | 5% | 7% | +1.8% |",
-    "| 10\u201320\u00a2 | 1827 | 15% | 15% | -1.6% |",
-    "| 20\u201330\u00a2 | 4081 | 25% | 25% | -1.7% |",
-    "| 30\u201340\u00a2 | 2664 | 34% | 34% | -2.1% |",
-    "| 40\u201350\u00a2 | 2040 | 44% | 46% | -0.5% |",
-    "| 50\u201360\u00a2 | 1652 | 55% | 52% | -4.1% |",
-    "| 60\u201370\u00a2 | 1442 | 64% | 62% | -4.4% |",
+    "| 10\u201320\u00a2 | 1831 | 15% | 15% | -1.6% |",
+    "| 20\u201330\u00a2 | 4088 | 25% | 25% | -1.7% |",
+    "| 30\u201340\u00a2 | 2665 | 34% | 34% | -2.1% |",
+    "| 40\u201350\u00a2 | 2042 | 44% | 46% | -0.5% |",
+    "| 50\u201360\u00a2 | 1654 | 55% | 52% | -4.1% |",
+    "| 60\u201370\u00a2 | 1444 | 64% | 62% | -4.3% |",
     "| 70\u201380\u00a2 | 1093 | 74% | 73% | -2.5% |",
     "| 80\u201390\u00a2 | 769 | 84% | 83% | -1.8% |",
     "| 90\u2013100\u00a2 | 566 | 95% | 96% | +0.7% |",

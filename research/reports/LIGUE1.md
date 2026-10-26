@@ -1,6 +1,6 @@
-# Kalshi Ligue 1 history test (Oct 25, 2026)
+# Kalshi Ligue 1 history test (Oct 26, 2026)
 
-1116 finished winner markets, priced before each game.
+1134 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -9,12 +9,12 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 26 | 7% | 4% | -4.1% |
-| 10–20¢ | 150 | 15% | 11% | -5.0% |
-| 20–30¢ | 417 | 25% | 25% | -1.3% |
-| 30–40¢ | 190 | 33% | 32% | -2.9% |
-| 40–50¢ | 120 | 44% | 49% | +3.1% |
-| 50–60¢ | 101 | 54% | 54% | -1.4% |
-| 60–70¢ | 60 | 64% | 58% | -7.4% |
+| 10–20¢ | 152 | 15% | 11% | -5.1% |
+| 20–30¢ | 425 | 25% | 26% | -1.0% |
+| 30–40¢ | 192 | 33% | 32% | -2.7% |
+| 40–50¢ | 122 | 44% | 48% | +2.3% |
+| 50–60¢ | 103 | 54% | 54% | -1.4% |
+| 60–70¢ | 62 | 64% | 58% | -7.7% |
 | 70–80¢ | 35 | 74% | 69% | -6.6% |
 | 80–90¢ | 16 | 83% | 81% | -2.6% |
 | 90–100¢ | 1 | 90% | 100% | +9.3% |

@@ -61,9 +61,9 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## Serie A
 
-**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 2 times in 1,346 prices).**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 2 times in 1,376 prices).**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1346 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1376 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 2 bets, 0 won, -30.4% per bet after fees.
 - Cheap long shots (under 20¢): 242 bets, 14% won, -1.3% per bet.
 - Big favorites (70¢ and up): 66 bets, 77% won, +0.8% per bet.

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-27T16:04:04+00:00",
+  "generated": "2026-10-27T16:04:12+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -463,13 +463,13 @@
       "tag": "watch",
       "verdict": "Worth watching: positive so far, but not enough bets to trust.",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1677 prices compared).",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1710 prices compared).",
         "Buying whenever Kalshi was 3+ points cheaper than the books: 32 bets, 18 won, +7.5% per bet after fees.",
         "Cheap long shots (under 20\u00a2): 193 bets, 18% won, +0.5% per bet.",
         "Big favorites (70\u00a2 and up): 42 bets, 67% won, -8.7% per bet."
       ],
       "error": "",
-      "updated": "2026-10-26T17:02:58+00:00",
+      "updated": "2026-10-27T16:04:12+00:00",
       "buckets": [
         [
           0,

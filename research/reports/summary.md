@@ -70,9 +70,9 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## Bundesliga
 
-**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 6 times in 1,014 prices).**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 6 times in 1,041 prices).**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1014 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1041 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 6 bets, 2 won, -5.0% per bet after fees.
 - Cheap long shots (under 20¢): 170 bets, 11% won, -3.9% per bet.
 - Big favorites (70¢ and up): 55 bets, 76% won, -3.4% per bet.

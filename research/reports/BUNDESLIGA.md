@@ -1,4 +1,4 @@
-# Kalshi Bundesliga history test (Oct 26, 2026)
+# Kalshi Bundesliga history test (Oct 27, 2026)
 
 1113 finished winner markets, priced before each game.
 
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1014 Kalshi prices matched with closing sportsbook lines.
+1041 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.560, sportsbooks 0.561.
+Prediction error (log loss, lower is better): Kalshi 0.562, sportsbooks 0.563.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 80 | 30 | -5.2% |
+| Kalshi any points cheaper than the books | 85 | 33 | -4.0% |
 | Kalshi 3+ points cheaper than the books | 6 | 2 | -5.0% |
 | Kalshi 5+ points cheaper than the books | 1 | 0 | -40.7% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 997 | 1.8 pts | 26 | 16 | +12.4% |
-| 48 h | 1008 | 1.7 pts | 22 | 11 | +3.3% |
-| 24 h | 1005 | 1.6 pts | 15 | 7 | +1.3% |
-| 6 h | 1008 | 1.2 pts | 4 | 2 | +5.1% |
-| 1 h | 1014 | 1.1 pts | 6 | 2 | -5.0% |
+| 72 h | 1024 | 1.8 pts | 27 | 16 | +10.3% |
+| 48 h | 1035 | 1.7 pts | 22 | 11 | +3.3% |
+| 24 h | 1032 | 1.6 pts | 16 | 7 | -1.6% |
+| 6 h | 1035 | 1.2 pts | 4 | 2 | +5.1% |
+| 1 h | 1041 | 1.1 pts | 6 | 2 | -5.0% |

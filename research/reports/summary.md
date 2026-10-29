@@ -61,12 +61,12 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## Serie A
 
-**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 2 times in 1,376 prices).**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 2 times in 1,400 prices).**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1376 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1400 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 2 bets, 0 won, -30.4% per bet after fees.
-- Cheap long shots (under 20¢): 244 bets, 14% won, -1.4% per bet.
-- Big favorites (70¢ and up): 67 bets, 78% won, +1.2% per bet.
+- Cheap long shots (under 20¢): 248 bets, 14% won, -0.8% per bet.
+- Big favorites (70¢ and up): 68 bets, 78% won, +1.5% per bet.
 
 ## Bundesliga
 
@@ -88,18 +88,18 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## All leagues together
 
-17,195 Kalshi markets from 7,069 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
+17,210 Kalshi markets from 7,074 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 821 | 5% | 7% | +1.8% |
-| 10–20¢ | 1855 | 15% | 14% | -1.7% |
-| 20–30¢ | 4146 | 25% | 25% | -1.6% |
-| 30–40¢ | 2697 | 34% | 34% | -2.1% |
+| 10–20¢ | 1859 | 15% | 15% | -1.7% |
+| 20–30¢ | 4150 | 25% | 25% | -1.7% |
+| 30–40¢ | 2700 | 34% | 34% | -2.1% |
 | 40–50¢ | 2072 | 44% | 45% | -0.6% |
-| 50–60¢ | 1683 | 55% | 52% | -4.0% |
+| 50–60¢ | 1686 | 55% | 52% | -4.1% |
 | 60–70¢ | 1475 | 64% | 62% | -4.2% |
-| 70–80¢ | 1105 | 74% | 73% | -2.5% |
+| 70–80¢ | 1106 | 74% | 73% | -2.5% |
 | 80–90¢ | 773 | 84% | 83% | -1.9% |
 | 90–100¢ | 568 | 95% | 96% | +0.7% |
 

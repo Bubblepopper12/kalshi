@@ -1,6 +1,6 @@
-# Kalshi NFL history test (Oct 29, 2026)
+# Kalshi NFL history test (Oct 30, 2026)
 
-962 finished winner markets, priced before each game.
+964 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -11,10 +11,10 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | 0–10¢ | 2 | 1% | 50% | +48.9% |
 | 10–20¢ | 44 | 15% | 7% | -8.7% |
 | 20–30¢ | 97 | 25% | 28% | +1.7% |
-| 30–40¢ | 148 | 35% | 43% | +5.7% |
+| 30–40¢ | 149 | 35% | 42% | +5.4% |
 | 40–50¢ | 178 | 44% | 46% | -0.4% |
 | 50–60¢ | 159 | 55% | 50% | -7.1% |
-| 60–70¢ | 164 | 64% | 60% | -5.0% |
+| 60–70¢ | 165 | 64% | 61% | -4.8% |
 | 70–80¢ | 113 | 74% | 71% | -4.8% |
 | 80–90¢ | 49 | 84% | 82% | -3.6% |
 | 90–100¢ | 8 | 90% | 100% | +9.0% |
@@ -25,7 +25,7 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from nflverse (closing moneylines).
 
-776 Kalshi prices matched with closing sportsbook lines.
+778 Kalshi prices matched with closing sportsbook lines.
 
 Prediction error (log loss, lower is better): Kalshi 0.629, sportsbooks 0.623.
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 774 | 2.3 pts | 30 | 22 | +9.7% |
-| 48 h | 774 | 2.0 pts | 18 | 11 | -3.4% |
-| 24 h | 774 | 1.6 pts | 10 | 8 | +8.1% |
-| 6 h | 774 | 1.3 pts | 6 | 3 | -19.6% |
-| 1 h | 774 | 1.2 pts | 1 | 1 | +10.3% |
+| 72 h | 776 | 2.3 pts | 30 | 22 | +9.7% |
+| 48 h | 776 | 2.0 pts | 18 | 11 | -3.4% |
+| 24 h | 776 | 1.6 pts | 10 | 8 | +8.1% |
+| 6 h | 776 | 1.3 pts | 6 | 3 | -19.6% |
+| 1 h | 776 | 1.2 pts | 1 | 1 | +10.3% |

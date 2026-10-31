@@ -1,4 +1,4 @@
-# Kalshi Champions League history test (Oct 30, 2026)
+# Kalshi Champions League history test (Oct 31, 2026)
 
 999 finished winner markets, priced before each game.
 

@@ -1,4 +1,4 @@
-# Kalshi NFL history test (Oct 31, 2026)
+# Kalshi NFL history test (Nov 1, 2026)
 
 964 finished winner markets, priced before each game.
 

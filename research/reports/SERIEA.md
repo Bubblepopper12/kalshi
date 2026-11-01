@@ -1,6 +1,6 @@
-# Kalshi Serie A history test (Oct 31, 2026)
+# Kalshi Serie A history test (Nov 1, 2026)
 
-1410 finished winner markets, priced before each game.
+1428 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -9,13 +9,13 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 31 | 8% | 6% | -1.6% |
-| 10–20¢ | 217 | 15% | 15% | -0.7% |
-| 20–30¢ | 387 | 25% | 22% | -4.3% |
+| 10–20¢ | 222 | 15% | 15% | -1.0% |
+| 20–30¢ | 394 | 25% | 22% | -4.5% |
 | 30–40¢ | 379 | 33% | 29% | -5.6% |
-| 40–50¢ | 143 | 44% | 57% | +10.6% |
-| 50–60¢ | 101 | 55% | 51% | -5.1% |
-| 60–70¢ | 84 | 65% | 64% | -1.9% |
-| 70–80¢ | 56 | 74% | 75% | +0.0% |
+| 40–50¢ | 145 | 44% | 57% | +10.5% |
+| 50–60¢ | 102 | 55% | 52% | -4.6% |
+| 60–70¢ | 86 | 65% | 65% | -1.1% |
+| 70–80¢ | 57 | 74% | 75% | +0.4% |
 | 80–90¢ | 12 | 82% | 92% | +8.6% |
 | 90–100¢ | 0 | | | |
 

@@ -1,6 +1,6 @@
-# Kalshi Serie A history test (Nov 1, 2026)
+# Kalshi Serie A history test (Nov 2, 2026)
 
-1428 finished winner markets, priced before each game.
+1437 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -10,9 +10,9 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 31 | 8% | 6% | -1.6% |
 | 10–20¢ | 222 | 15% | 15% | -1.0% |
-| 20–30¢ | 394 | 25% | 22% | -4.5% |
-| 30–40¢ | 379 | 33% | 29% | -5.6% |
-| 40–50¢ | 145 | 44% | 57% | +10.5% |
+| 20–30¢ | 396 | 25% | 22% | -4.6% |
+| 30–40¢ | 384 | 33% | 29% | -5.7% |
+| 40–50¢ | 147 | 44% | 57% | +11.1% |
 | 50–60¢ | 102 | 55% | 52% | -4.6% |
 | 60–70¢ | 86 | 65% | 65% | -1.1% |
 | 70–80¢ | 57 | 74% | 75% | +0.4% |
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1406 Kalshi prices matched with closing sportsbook lines.
+1430 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.563, sportsbooks 0.563.
+Prediction error (log loss, lower is better): Kalshi 0.560, sportsbooks 0.561.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 86 | 37 | +0.7% |
+| Kalshi any points cheaper than the books | 88 | 37 | +0.2% |
 | Kalshi 3+ points cheaper than the books | 2 | 0 | -30.4% |
 | Kalshi 5+ points cheaper than the books | 0 | 0 | +0.0% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1377 | 1.9 pts | 28 | 14 | +8.3% |
-| 48 h | 1390 | 1.7 pts | 28 | 14 | +7.0% |
-| 24 h | 1399 | 1.6 pts | 22 | 12 | +9.0% |
-| 6 h | 1400 | 1.1 pts | 4 | 2 | +16.8% |
-| 1 h | 1406 | 1.0 pts | 2 | 0 | -30.4% |
+| 72 h | 1401 | 1.9 pts | 29 | 15 | +10.0% |
+| 48 h | 1414 | 1.7 pts | 28 | 14 | +7.0% |
+| 24 h | 1423 | 1.6 pts | 22 | 12 | +9.0% |
+| 6 h | 1424 | 1.1 pts | 4 | 2 | +16.8% |
+| 1 h | 1430 | 1.0 pts | 2 | 0 | -30.4% |

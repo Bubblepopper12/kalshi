@@ -1,4 +1,4 @@
-# Kalshi College football / CFP history test (Nov 1, 2026)
+# Kalshi College football / CFP history test (Nov 2, 2026)
 
 4047 finished winner markets, priced before each game.
 

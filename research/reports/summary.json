@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T18:07:22+00:00",
+  "generated": "2026-11-03T18:07:35+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -833,8 +833,8 @@
     {
       "code": "LIGUE1",
       "name": "Ligue 1",
-      "markets": 1161,
-      "games": 387,
+      "markets": 1164,
+      "games": 388,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 5 times in 1,044 prices).",
@@ -845,7 +845,7 @@
         "Big favorites (70\u00a2 and up): 56 bets, 75% won, -3.0% per bet."
       ],
       "error": "",
-      "updated": "2026-11-02T20:32:30+00:00",
+      "updated": "2026-11-03T18:07:35+00:00",
       "buckets": [
         [
           0,
@@ -870,10 +870,10 @@
         ],
         [
           30,
-          197,
-          65.81999999999996,
-          64,
-          -4.961000000000012
+          200,
+          66.82999999999996,
+          65,
+          -5.019000000000013
         ],
         [
           40,
@@ -928,14 +928,14 @@
   "pooled": [
     "## All leagues together",
     "",
-    "17,728 Kalshi markets from 7,301 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "17,731 Kalshi markets from 7,302 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 840 | 5% | 7% | +1.6% |",
     "| 10\u201320\u00a2 | 1910 | 15% | 14% | -1.8% |",
     "| 20\u201330\u00a2 | 4263 | 25% | 25% | -1.7% |",
-    "| 30\u201340\u00a2 | 2780 | 34% | 33% | -2.2% |",
+    "| 30\u201340\u00a2 | 2783 | 34% | 33% | -2.2% |",
     "| 40\u201350\u00a2 | 2128 | 44% | 45% | -0.7% |",
     "| 50\u201360\u00a2 | 1734 | 55% | 53% | -3.6% |",
     "| 60\u201370\u00a2 | 1527 | 64% | 62% | -4.3% |",

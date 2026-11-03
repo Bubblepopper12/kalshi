@@ -88,14 +88,14 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## All leagues together
 
-17,728 Kalshi markets from 7,301 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
+17,731 Kalshi markets from 7,302 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 840 | 5% | 7% | +1.6% |
 | 10–20¢ | 1910 | 15% | 14% | -1.8% |
 | 20–30¢ | 4263 | 25% | 25% | -1.7% |
-| 30–40¢ | 2780 | 34% | 33% | -2.2% |
+| 30–40¢ | 2783 | 34% | 33% | -2.2% |
 | 40–50¢ | 2128 | 44% | 45% | -0.7% |
 | 50–60¢ | 1734 | 55% | 53% | -3.6% |
 | 60–70¢ | 1527 | 64% | 62% | -4.3% |

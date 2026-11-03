@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-03T18:05:28+00:00",
+  "generated": "2026-11-03T18:05:49+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -275,19 +275,19 @@
     {
       "code": "EPL",
       "name": "Premier League",
-      "markets": 1407,
-      "games": 469,
+      "markets": 1410,
+      "games": 470,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
-      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 0 times in 1,404 prices).",
+      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 0 times in 1,407 prices).",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1404 prices compared).",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1407 prices compared).",
         "Kalshi was never 3+ points cheaper than the books before a game.",
         "Cheap long shots (under 20\u00a2): 198 bets, 14% won, -1.1% per bet.",
         "Big favorites (70\u00a2 and up): 50 bets, 72% won, -5.1% per bet."
       ],
       "error": "",
-      "updated": "2026-11-02T20:31:34+00:00",
+      "updated": "2026-11-03T18:05:49+00:00",
       "buckets": [
         [
           0,
@@ -305,10 +305,10 @@
         ],
         [
           20,
-          566,
-          143.36000000000018,
-          158,
-          6.841000000000007
+          568,
+          143.9200000000002,
+          159,
+          7.252000000000008
         ],
         [
           30,
@@ -319,10 +319,10 @@
         ],
         [
           40,
-          162,
-          72.17999999999995,
+          163,
+          72.62999999999995,
           71,
-          -4.064999999999998
+          -4.532999999999998
         ],
         [
           50,
@@ -928,15 +928,15 @@
   "pooled": [
     "## All leagues together",
     "",
-    "17,719 Kalshi markets from 7,298 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "17,722 Kalshi markets from 7,299 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 840 | 5% | 7% | +1.6% |",
     "| 10\u201320\u00a2 | 1909 | 15% | 14% | -1.9% |",
-    "| 20\u201330\u00a2 | 4259 | 25% | 25% | -1.7% |",
+    "| 20\u201330\u00a2 | 4261 | 25% | 25% | -1.7% |",
     "| 30\u201340\u00a2 | 2779 | 34% | 33% | -2.2% |",
-    "| 40\u201350\u00a2 | 2126 | 44% | 45% | -0.7% |",
+    "| 40\u201350\u00a2 | 2127 | 44% | 45% | -0.8% |",
     "| 50\u201360\u00a2 | 1734 | 55% | 53% | -3.6% |",
     "| 60\u201370\u00a2 | 1526 | 64% | 62% | -4.2% |",
     "| 70\u201380\u00a2 | 1157 | 74% | 73% | -2.4% |",

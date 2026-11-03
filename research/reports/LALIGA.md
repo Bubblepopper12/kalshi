@@ -1,6 +1,6 @@
-# Kalshi La Liga history test (Nov 2, 2026)
+# Kalshi La Liga history test (Nov 3, 2026)
 
-1457 finished winner markets, priced before each game.
+1460 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -10,9 +10,9 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 61 | 6% | 2% | -5.2% |
 | 10–20¢ | 174 | 15% | 16% | -0.7% |
-| 20–30¢ | 443 | 26% | 24% | -3.2% |
-| 30–40¢ | 373 | 33% | 31% | -4.2% |
-| 40–50¢ | 175 | 44% | 47% | +1.4% |
+| 20–30¢ | 444 | 26% | 24% | -3.3% |
+| 30–40¢ | 374 | 33% | 30% | -4.2% |
+| 40–50¢ | 176 | 44% | 48% | +1.7% |
 | 50–60¢ | 106 | 55% | 53% | -3.5% |
 | 60–70¢ | 52 | 64% | 65% | -0.3% |
 | 70–80¢ | 41 | 74% | 76% | +0.0% |
@@ -25,7 +25,7 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1445 Kalshi prices matched with closing sportsbook lines.
+1448 Kalshi prices matched with closing sportsbook lines.
 
 Prediction error (log loss, lower is better): Kalshi 0.557, sportsbooks 0.556.
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1404 | 1.8 pts | 25 | 14 | +8.9% |
-| 48 h | 1418 | 1.6 pts | 20 | 11 | +6.2% |
-| 24 h | 1430 | 1.4 pts | 12 | 6 | +2.4% |
-| 6 h | 1442 | 1.1 pts | 4 | 2 | -5.6% |
-| 1 h | 1445 | 1.0 pts | 4 | 1 | -9.5% |
+| 72 h | 1407 | 1.8 pts | 25 | 14 | +8.9% |
+| 48 h | 1421 | 1.6 pts | 20 | 11 | +6.2% |
+| 24 h | 1433 | 1.4 pts | 12 | 6 | +2.4% |
+| 6 h | 1445 | 1.1 pts | 4 | 2 | -5.6% |
+| 1 h | 1448 | 1.0 pts | 4 | 1 | -9.5% |

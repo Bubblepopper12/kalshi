@@ -1,4 +1,4 @@
-# Kalshi MLS history test (Nov 2, 2026)
+# Kalshi MLS history test (Nov 3, 2026)
 
 2013 finished winner markets, priced before each game.
 
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1746 Kalshi prices matched with closing sportsbook lines.
+1785 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.597, sportsbooks 0.595.
+Prediction error (log loss, lower is better): Kalshi 0.596, sportsbooks 0.593.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 153 | 69 | +3.7% |
+| Kalshi any points cheaper than the books | 159 | 72 | +4.0% |
 | Kalshi 3+ points cheaper than the books | 32 | 18 | +7.5% |
 | Kalshi 5+ points cheaper than the books | 16 | 10 | +15.3% |
 

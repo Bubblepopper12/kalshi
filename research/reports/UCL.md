@@ -1,6 +1,6 @@
-# Kalshi Champions League history test (Nov 3, 2026)
+# Kalshi Champions League history test (Nov 4, 2026)
 
-999 finished winner markets, priced before each game.
+1026 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -9,13 +9,13 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 65 | 6% | 8% | +0.9% |
-| 10–20¢ | 196 | 15% | 13% | -3.0% |
-| 20–30¢ | 317 | 25% | 21% | -5.3% |
-| 30–40¢ | 109 | 34% | 41% | +5.4% |
-| 40–50¢ | 88 | 44% | 40% | -6.0% |
-| 50–60¢ | 73 | 55% | 67% | +10.4% |
-| 60–70¢ | 63 | 64% | 62% | -4.1% |
-| 70–80¢ | 50 | 74% | 66% | -9.7% |
+| 10–20¢ | 201 | 15% | 13% | -3.3% |
+| 20–30¢ | 327 | 25% | 20% | -5.6% |
+| 30–40¢ | 112 | 34% | 40% | +4.4% |
+| 40–50¢ | 92 | 44% | 42% | -3.5% |
+| 50–60¢ | 75 | 55% | 68% | +11.3% |
+| 60–70¢ | 64 | 64% | 61% | -5.0% |
+| 70–80¢ | 52 | 74% | 67% | -8.4% |
 | 80–90¢ | 29 | 85% | 90% | +4.0% |
 | 90–100¢ | 9 | 93% | 100% | +6.7% |
 

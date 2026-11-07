@@ -1,4 +1,4 @@
-# Kalshi MLS history test (Nov 6, 2026)
+# Kalshi MLS history test (Nov 7, 2026)
 
 2013 finished winner markets, priced before each game.
 

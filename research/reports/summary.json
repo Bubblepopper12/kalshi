@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-07T16:39:57+00:00",
+  "generated": "2026-11-07T16:40:09+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -551,8 +551,8 @@
     {
       "code": "LALIGA",
       "name": "La Liga",
-      "markets": 1460,
-      "games": 488,
+      "markets": 1466,
+      "games": 490,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 4 times in 1,448 prices).",
@@ -563,7 +563,7 @@
         "Big favorites (70\u00a2 and up): 73 bets, 86% won, +6.5% per bet."
       ],
       "error": "",
-      "updated": "2026-11-06T17:43:12+00:00",
+      "updated": "2026-11-07T16:40:09+00:00",
       "buckets": [
         [
           0,
@@ -581,17 +581,17 @@
         ],
         [
           20,
-          444,
-          113.48000000000023,
+          446,
+          113.97000000000023,
           105,
-          -14.632000000000014
+          -15.149000000000015
         ],
         [
           30,
-          374,
-          123.90999999999976,
-          114,
-          -15.837999999999997
+          377,
+          124.94999999999975,
+          116,
+          -14.925999999999997
         ],
         [
           40,
@@ -602,10 +602,10 @@
         ],
         [
           50,
-          106,
-          57.820000000000036,
+          107,
+          58.320000000000036,
           56,
-          -3.7160000000000046
+          -4.234000000000004
         ],
         [
           60,
@@ -928,16 +928,16 @@
   "pooled": [
     "## All leagues together",
     "",
-    "17,869 Kalshi markets from 7,361 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "17,875 Kalshi markets from 7,363 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 844 | 5% | 7% | +1.5% |",
     "| 10\u201320\u00a2 | 1930 | 15% | 14% | -1.9% |",
-    "| 20\u201330\u00a2 | 4290 | 25% | 25% | -1.8% |",
-    "| 30\u201340\u00a2 | 2799 | 34% | 33% | -2.2% |",
+    "| 20\u201330\u00a2 | 4292 | 25% | 25% | -1.8% |",
+    "| 30\u201340\u00a2 | 2802 | 34% | 33% | -2.2% |",
     "| 40\u201350\u00a2 | 2147 | 44% | 45% | -0.8% |",
-    "| 50\u201360\u00a2 | 1747 | 55% | 53% | -3.4% |",
+    "| 50\u201360\u00a2 | 1748 | 55% | 53% | -3.5% |",
     "| 60\u201370\u00a2 | 1544 | 64% | 62% | -4.2% |",
     "| 70\u201380\u00a2 | 1168 | 74% | 73% | -2.4% |",
     "| 80\u201390\u00a2 | 811 | 84% | 84% | -1.1% |",

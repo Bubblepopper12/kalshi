@@ -74,8 +74,8 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 - Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1068 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 6 bets, 2 won, -5.0% per bet after fees.
-- Cheap long shots (under 20¢): 173 bets, 11% won, -3.5% per bet.
-- Big favorites (70¢ and up): 56 bets, 75% won, -4.7% per bet.
+- Cheap long shots (under 20¢): 179 bets, 11% won, -3.9% per bet.
+- Big favorites (70¢ and up): 58 bets, 76% won, -3.8% per bet.
 
 ## Ligue 1
 
@@ -88,18 +88,18 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## All leagues together
 
-17,884 Kalshi markets from 7,366 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
+17,899 Kalshi markets from 7,371 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 844 | 5% | 7% | +1.5% |
-| 10–20¢ | 1930 | 15% | 14% | -1.9% |
-| 20–30¢ | 4296 | 25% | 25% | -1.8% |
-| 30–40¢ | 2804 | 34% | 33% | -2.2% |
-| 40–50¢ | 2149 | 44% | 45% | -0.8% |
+| 10–20¢ | 1936 | 15% | 14% | -2.0% |
+| 20–30¢ | 4298 | 25% | 25% | -1.8% |
+| 30–40¢ | 2806 | 34% | 33% | -2.2% |
+| 40–50¢ | 2151 | 44% | 45% | -0.7% |
 | 50–60¢ | 1749 | 55% | 53% | -3.5% |
-| 60–70¢ | 1544 | 64% | 62% | -4.2% |
-| 70–80¢ | 1168 | 74% | 73% | -2.4% |
+| 60–70¢ | 1545 | 64% | 62% | -4.1% |
+| 70–80¢ | 1170 | 74% | 73% | -2.4% |
 | 80–90¢ | 811 | 84% | 84% | -1.1% |
 | 90–100¢ | 589 | 95% | 96% | +0.7% |
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T16:50:59+00:00",
+  "generated": "2026-11-08T16:51:20+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -645,19 +645,19 @@
     {
       "code": "SERIEA",
       "name": "Serie A",
-      "markets": 1449,
-      "games": 483,
+      "markets": 1464,
+      "games": 488,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
       "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 2 times in 1,436 prices).",
       "points": [
         "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1436 prices compared).",
         "Buying whenever Kalshi was 3+ points cheaper than the books: 2 bets, 0 won, -30.4% per bet after fees.",
-        "Cheap long shots (under 20\u00a2): 254 bets, 14% won, -0.8% per bet.",
-        "Big favorites (70\u00a2 and up): 69 bets, 78% won, +1.9% per bet."
+        "Cheap long shots (under 20\u00a2): 257 bets, 14% won, -0.9% per bet.",
+        "Big favorites (70\u00a2 and up): 70 bets, 79% won, +2.2% per bet."
       ],
       "error": "",
-      "updated": "2026-11-07T16:40:20+00:00",
+      "updated": "2026-11-08T16:51:20+00:00",
       "buckets": [
         [
           0,
@@ -668,38 +668,38 @@
         ],
         [
           10,
-          223,
-          33.39000000000003,
+          226,
+          33.840000000000025,
           34,
-          -1.4510000000000038
+          -1.9290000000000038
         ],
         [
           20,
-          401,
-          99.95000000000005,
-          87,
-          -18.423999999999992
+          407,
+          101.55000000000005,
+          88,
+          -19.10899999999999
         ],
         [
           30,
-          386,
-          127.35999999999973,
+          387,
+          127.68999999999973,
           112,
-          -21.47199999999998
+          -21.81799999999998
         ],
         [
           40,
-          149,
-          65.94999999999995,
-          85,
-          16.401000000000003
+          151,
+          66.85999999999994,
+          86,
+          16.455000000000005
         ],
         [
           50,
-          103,
-          56.430000000000014,
-          53,
-          -5.2730000000000015
+          105,
+          57.500000000000014,
+          55,
+          -4.379000000000001
         ],
         [
           60,
@@ -710,10 +710,10 @@
         ],
         [
           70,
-          57,
-          41.949999999999996,
-          43,
-          0.24899999999999978
+          58,
+          42.69,
+          44,
+          0.4949999999999998
         ],
         [
           80,
@@ -928,18 +928,18 @@
   "pooled": [
     "## All leagues together",
     "",
-    "18,213 Kalshi markets from 7,516 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "18,228 Kalshi markets from 7,521 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 855 | 5% | 7% | +1.4% |",
-    "| 10\u201320\u00a2 | 1964 | 15% | 14% | -2.0% |",
-    "| 20\u201330\u00a2 | 4362 | 25% | 25% | -1.9% |",
-    "| 30\u201340\u00a2 | 2850 | 34% | 34% | -2.1% |",
-    "| 40\u201350\u00a2 | 2183 | 44% | 45% | -0.8% |",
-    "| 50\u201360\u00a2 | 1784 | 55% | 53% | -3.4% |",
+    "| 10\u201320\u00a2 | 1967 | 15% | 14% | -2.0% |",
+    "| 20\u201330\u00a2 | 4368 | 25% | 24% | -1.9% |",
+    "| 30\u201340\u00a2 | 2851 | 34% | 34% | -2.1% |",
+    "| 40\u201350\u00a2 | 2185 | 44% | 45% | -0.8% |",
+    "| 50\u201360\u00a2 | 1786 | 55% | 53% | -3.3% |",
     "| 60\u201370\u00a2 | 1578 | 64% | 62% | -4.1% |",
-    "| 70\u201380\u00a2 | 1205 | 74% | 73% | -2.5% |",
+    "| 70\u201380\u00a2 | 1206 | 74% | 73% | -2.5% |",
     "| 80\u201390\u00a2 | 834 | 84% | 84% | -1.0% |",
     "| 90\u2013100\u00a2 | 598 | 95% | 96% | +0.8% |",
     "",

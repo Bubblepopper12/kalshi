@@ -1,6 +1,6 @@
-# Kalshi Premier League history test (Nov 7, 2026)
+# Kalshi Premier League history test (Nov 8, 2026)
 
-1416 finished winner markets, priced before each game.
+1437 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -8,15 +8,15 @@ Buying at the pre-game ask price, including Kalshi's fee:
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
-| 0–10¢ | 22 | 6% | 5% | -2.0% |
-| 10–20¢ | 177 | 15% | 15% | -1.1% |
-| 20–30¢ | 570 | 25% | 28% | +1.2% |
+| 0–10¢ | 23 | 6% | 4% | -2.1% |
+| 10–20¢ | 179 | 15% | 15% | -1.2% |
+| 20–30¢ | 581 | 25% | 28% | +1.2% |
 | 30–40¢ | 229 | 34% | 32% | -3.5% |
-| 40–50¢ | 163 | 45% | 44% | -2.8% |
-| 50–60¢ | 117 | 55% | 41% | -15.3% |
-| 60–70¢ | 88 | 64% | 65% | -1.0% |
+| 40–50¢ | 166 | 45% | 43% | -3.0% |
+| 50–60¢ | 119 | 55% | 41% | -15.2% |
+| 60–70¢ | 89 | 64% | 65% | -0.6% |
 | 70–80¢ | 37 | 73% | 70% | -4.4% |
-| 80–90¢ | 13 | 83% | 77% | -7.3% |
+| 80–90¢ | 14 | 83% | 79% | -5.9% |
 | 90–100¢ | 0 | | | |
 
 If cheap buckets win less often than their price, longshots are overpriced.

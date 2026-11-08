@@ -1,6 +1,6 @@
-# Kalshi Bundesliga history test (Nov 7, 2026)
+# Kalshi Bundesliga history test (Nov 8, 2026)
 
-1155 finished winner markets, priced before each game.
+1161 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -10,10 +10,10 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 35 | 7% | 6% | -1.5% |
 | 10–20¢ | 144 | 15% | 12% | -4.5% |
-| 20–30¢ | 441 | 25% | 24% | -2.0% |
+| 20–30¢ | 445 | 25% | 24% | -2.2% |
 | 30–40¢ | 195 | 34% | 31% | -4.8% |
 | 40–50¢ | 123 | 44% | 46% | +0.6% |
-| 50–60¢ | 104 | 54% | 54% | -1.8% |
+| 50–60¢ | 106 | 54% | 55% | -0.9% |
 | 60–70¢ | 55 | 64% | 73% | +6.9% |
 | 70–80¢ | 34 | 73% | 76% | +1.7% |
 | 80–90¢ | 17 | 83% | 76% | -7.8% |

@@ -1,6 +1,6 @@
-# Kalshi Ligue 1 history test (Nov 8, 2026)
+# Kalshi Ligue 1 history test (Nov 9, 2026)
 
-1176 finished winner markets, priced before each game.
+1191 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -9,12 +9,12 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 28 | 7% | 4% | -4.2% |
-| 10–20¢ | 160 | 15% | 11% | -5.6% |
-| 20–30¢ | 436 | 25% | 25% | -1.7% |
-| 30–40¢ | 202 | 33% | 33% | -2.3% |
-| 40–50¢ | 125 | 44% | 49% | +2.7% |
-| 50–60¢ | 106 | 54% | 56% | -0.1% |
-| 60–70¢ | 62 | 64% | 58% | -7.7% |
+| 10–20¢ | 162 | 15% | 10% | -5.8% |
+| 20–30¢ | 440 | 25% | 25% | -1.7% |
+| 30–40¢ | 208 | 33% | 33% | -1.8% |
+| 40–50¢ | 127 | 44% | 49% | +2.7% |
+| 50–60¢ | 106 | 54% | 55% | -1.1% |
+| 60–70¢ | 63 | 64% | 59% | -7.0% |
 | 70–80¢ | 38 | 74% | 71% | -4.1% |
 | 80–90¢ | 18 | 83% | 83% | -0.6% |
 | 90–100¢ | 1 | 90% | 100% | +9.3% |
@@ -25,14 +25,14 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1044 Kalshi prices matched with closing sportsbook lines.
+1068 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.570, sportsbooks 0.571.
+Prediction error (log loss, lower is better): Kalshi 0.568, sportsbooks 0.569.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 78 | 30 | +1.6% |
-| Kalshi 3+ points cheaper than the books | 5 | 1 | -21.0% |
+| Kalshi any points cheaper than the books | 81 | 32 | +1.6% |
+| Kalshi 3+ points cheaper than the books | 6 | 2 | -9.0% |
 | Kalshi 5+ points cheaper than the books | 1 | 0 | -31.5% |
 
 Small samples swing a lot: treat fewer than ~200 bets as a hint, not proof.
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1034 | 2.1 pts | 40 | 16 | -7.4% |
-| 48 h | 1043 | 1.9 pts | 37 | 15 | -5.0% |
-| 24 h | 1041 | 1.8 pts | 27 | 13 | -0.6% |
-| 6 h | 1044 | 1.2 pts | 5 | 3 | +14.8% |
-| 1 h | 1044 | 1.1 pts | 5 | 1 | -21.0% |
+| 72 h | 1058 | 2.1 pts | 42 | 17 | -7.4% |
+| 48 h | 1067 | 1.9 pts | 38 | 16 | -3.7% |
+| 24 h | 1065 | 1.8 pts | 28 | 14 | +0.9% |
+| 6 h | 1068 | 1.2 pts | 7 | 5 | +20.0% |
+| 1 h | 1068 | 1.2 pts | 6 | 2 | -9.0% |

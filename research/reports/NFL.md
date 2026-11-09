@@ -1,6 +1,6 @@
-# Kalshi NFL history test (Nov 8, 2026)
+# Kalshi NFL history test (Nov 9, 2026)
 
-992 finished winner markets, priced before each game.
+1018 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -10,13 +10,13 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 2 | 1% | 50% | +48.9% |
 | 10–20¢ | 46 | 15% | 7% | -9.0% |
-| 20–30¢ | 101 | 25% | 28% | +1.6% |
-| 30–40¢ | 154 | 35% | 42% | +4.7% |
-| 40–50¢ | 180 | 44% | 46% | -0.4% |
+| 20–30¢ | 106 | 25% | 26% | +0.3% |
+| 30–40¢ | 160 | 35% | 41% | +3.7% |
+| 40–50¢ | 182 | 44% | 45% | -0.9% |
 | 50–60¢ | 163 | 55% | 50% | -7.1% |
-| 60–70¢ | 169 | 64% | 61% | -4.4% |
-| 70–80¢ | 117 | 74% | 71% | -4.6% |
-| 80–90¢ | 52 | 84% | 83% | -2.5% |
+| 60–70¢ | 177 | 64% | 62% | -3.2% |
+| 70–80¢ | 120 | 74% | 72% | -3.9% |
+| 80–90¢ | 54 | 84% | 83% | -1.7% |
 | 90–100¢ | 8 | 90% | 100% | +9.0% |
 
 If cheap buckets win less often than their price, longshots are overpriced.
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from nflverse (closing moneylines).
 
-806 Kalshi prices matched with closing sportsbook lines.
+832 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.625, sportsbooks 0.619.
+Prediction error (log loss, lower is better): Kalshi 0.619, sportsbooks 0.613.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 76 | 57 | -1.9% |
+| Kalshi any points cheaper than the books | 79 | 60 | -0.9% |
 | Kalshi 3+ points cheaper than the books | 3 | 2 | +36.0% |
 | Kalshi 5+ points cheaper than the books | 2 | 1 | +48.9% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 804 | 2.3 pts | 31 | 23 | +9.8% |
-| 48 h | 804 | 1.9 pts | 18 | 11 | -3.4% |
-| 24 h | 804 | 1.6 pts | 10 | 8 | +8.1% |
-| 6 h | 804 | 1.3 pts | 6 | 3 | -19.6% |
-| 1 h | 804 | 1.2 pts | 1 | 1 | +10.3% |
+| 72 h | 830 | 2.3 pts | 32 | 24 | +10.7% |
+| 48 h | 830 | 1.9 pts | 19 | 12 | -1.2% |
+| 24 h | 830 | 1.6 pts | 11 | 9 | +10.6% |
+| 6 h | 830 | 1.3 pts | 7 | 4 | -11.6% |
+| 1 h | 830 | 1.2 pts | 1 | 1 | +10.3% |

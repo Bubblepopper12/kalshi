@@ -1,4 +1,4 @@
-# Kalshi Premier League history test (Nov 9, 2026)
+# Kalshi Premier League history test (Nov 10, 2026)
 
 1440 finished winner markets, priced before each game.
 

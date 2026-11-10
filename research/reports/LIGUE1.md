@@ -1,4 +1,4 @@
-# Kalshi Ligue 1 history test (Nov 9, 2026)
+# Kalshi Ligue 1 history test (Nov 10, 2026)
 
 1191 finished winner markets, priced before each game.
 

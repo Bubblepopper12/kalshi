@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-10T18:19:26+00:00",
+  "generated": "2026-11-10T18:19:34+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -463,13 +463,13 @@
       "tag": "watch",
       "verdict": "Worth watching: positive so far, but not enough bets to trust.",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1785 prices compared).",
-        "Buying whenever Kalshi was 3+ points cheaper than the books: 32 bets, 18 won, +7.5% per bet after fees.",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1824 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 34 bets, 20 won, +9.6% per bet after fees.",
         "Cheap long shots (under 20\u00a2): 211 bets, 18% won, +0.4% per bet.",
         "Big favorites (70\u00a2 and up): 43 bets, 65% won, -10.2% per bet."
       ],
       "error": "",
-      "updated": "2026-11-09T21:08:50+00:00",
+      "updated": "2026-11-10T18:19:34+00:00",
       "buckets": [
         [
           0,
@@ -543,9 +543,9 @@
         ]
       ],
       "rule3": [
-        32,
-        18,
-        2.4049999999999994
+        34,
+        20,
+        3.2519999999999993
       ]
     },
     {
@@ -943,7 +943,7 @@
     "| 80\u201390\u00a2 | 843 | 84% | 84% | -0.9% |",
     "| 90\u2013100\u00a2 | 598 | 95% | 96% | +0.8% |",
     "",
-    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 53 bets, 25 won, +3.1% per bet after fees.",
+    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 55 bets, 27 won, +4.6% per bet after fees.",
     ""
   ]
 }

@@ -1,4 +1,4 @@
-# Kalshi Bundesliga history test (Nov 10, 2026)
+# Kalshi Bundesliga history test (Nov 11, 2026)
 
 1167 finished winner markets, priced before each game.
 

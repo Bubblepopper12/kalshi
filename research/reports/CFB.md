@@ -1,6 +1,6 @@
-# Kalshi College football / CFP history test (Nov 14, 2026)
+# Kalshi College football / CFP history test (Nov 15, 2026)
 
-4316 finished winner markets, priced before each game.
+4547 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -8,16 +8,16 @@ Buying at the pre-game ask price, including Kalshi's fee:
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
-| 0–10¢ | 547 | 4% | 8% | +3.5% |
-| 10–20¢ | 371 | 15% | 13% | -2.3% |
-| 20–30¢ | 420 | 25% | 26% | +0.6% |
-| 30–40¢ | 436 | 34% | 36% | +0.4% |
-| 40–50¢ | 419 | 44% | 41% | -5.5% |
-| 50–60¢ | 396 | 55% | 57% | -0.2% |
-| 60–70¢ | 425 | 65% | 60% | -6.4% |
-| 70–80¢ | 436 | 75% | 73% | -2.7% |
-| 80–90¢ | 394 | 84% | 85% | -0.4% |
-| 90–100¢ | 472 | 95% | 96% | -0.1% |
+| 0–10¢ | 556 | 4% | 8% | +3.3% |
+| 10–20¢ | 396 | 15% | 14% | -2.2% |
+| 20–30¢ | 450 | 25% | 27% | +1.2% |
+| 30–40¢ | 456 | 34% | 36% | +0.3% |
+| 40–50¢ | 448 | 44% | 41% | -4.8% |
+| 50–60¢ | 428 | 55% | 56% | -0.5% |
+| 60–70¢ | 448 | 65% | 60% | -6.6% |
+| 70–80¢ | 458 | 75% | 72% | -3.9% |
+| 80–90¢ | 427 | 84% | 85% | -0.1% |
+| 90–100¢ | 480 | 95% | 96% | +0.0% |
 
 If cheap buckets win less often than their price, longshots are overpriced.
 

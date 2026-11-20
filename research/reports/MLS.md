@@ -1,6 +1,6 @@
-# Kalshi MLS history test (Nov 19, 2026)
+# Kalshi MLS history test (Nov 20, 2026)
 
-2058 finished winner markets, priced before each game.
+2064 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -10,9 +10,9 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 4 | 8% | 0% | -8.6% |
 | 10–20¢ | 207 | 16% | 18% | +0.6% |
-| 20–30¢ | 877 | 25% | 25% | -1.1% |
-| 30–40¢ | 330 | 35% | 32% | -4.1% |
-| 40–50¢ | 289 | 44% | 43% | -3.2% |
+| 20–30¢ | 880 | 25% | 25% | -1.1% |
+| 30–40¢ | 331 | 35% | 32% | -3.9% |
+| 40–50¢ | 291 | 44% | 43% | -3.5% |
 | 50–60¢ | 196 | 54% | 51% | -5.0% |
 | 60–70¢ | 112 | 64% | 64% | -1.3% |
 | 70–80¢ | 41 | 73% | 63% | -11.3% |

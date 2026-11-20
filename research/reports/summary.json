@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-20T18:53:03+00:00",
+  "generated": "2026-11-20T18:53:13+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -457,8 +457,8 @@
     {
       "code": "MLS",
       "name": "MLS",
-      "markets": 2058,
-      "games": 686,
+      "markets": 2064,
+      "games": 688,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "watch",
       "verdict": "Worth watching: positive so far, but not enough bets to trust.",
@@ -469,7 +469,7 @@
         "Big favorites (70\u00a2 and up): 43 bets, 65% won, -10.2% per bet."
       ],
       "error": "",
-      "updated": "2026-11-19T19:12:07+00:00",
+      "updated": "2026-11-20T18:53:13+00:00",
       "buckets": [
         [
           0,
@@ -487,24 +487,24 @@
         ],
         [
           20,
-          877,
-          216.95999999999987,
-          219,
-          -9.871000000000041
+          880,
+          217.73999999999987,
+          220,
+          -9.693000000000042
         ],
         [
           30,
-          330,
-          114.08999999999988,
-          106,
-          -13.445000000000006
+          331,
+          114.46999999999987,
+          107,
+          -12.842000000000006
         ],
         [
           40,
-          289,
-          127.99000000000001,
+          291,
+          128.87,
           124,
-          -9.129999999999988
+          -10.044999999999987
         ],
         [
           50,
@@ -928,15 +928,15 @@
   "pooled": [
     "## All leagues together",
     "",
-    "18,789 Kalshi markets from 7,793 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "18,795 Kalshi markets from 7,795 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 866 | 5% | 7% | +1.3% |",
     "| 10\u201320\u00a2 | 2021 | 15% | 14% | -2.1% |",
-    "| 20\u201330\u00a2 | 4460 | 25% | 24% | -1.9% |",
-    "| 30\u201340\u00a2 | 2917 | 34% | 33% | -2.2% |",
-    "| 40\u201350\u00a2 | 2254 | 44% | 45% | -0.7% |",
+    "| 20\u201330\u00a2 | 4463 | 25% | 24% | -1.9% |",
+    "| 30\u201340\u00a2 | 2918 | 34% | 34% | -2.1% |",
+    "| 40\u201350\u00a2 | 2256 | 44% | 45% | -0.7% |",
     "| 50\u201360\u00a2 | 1858 | 55% | 53% | -3.3% |",
     "| 60\u201370\u00a2 | 1645 | 64% | 62% | -3.8% |",
     "| 70\u201380\u00a2 | 1259 | 74% | 73% | -3.0% |",

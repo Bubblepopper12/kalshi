@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-23T22:18:09+00:00",
+  "generated": "2026-11-23T22:18:23+00:00",
   "since": "2025-08-01",
   "leagues": [
     {
@@ -739,19 +739,19 @@
     {
       "code": "BUNDESLIGA",
       "name": "Bundesliga",
-      "markets": 1191,
-      "games": 397,
+      "markets": 1194,
+      "games": 398,
       "source": "football-data.co.uk (Pinnacle closing odds)",
       "tag": "none",
-      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 6 times in 1,095 prices).",
+      "verdict": "No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 7 times in 1,122 prices).",
       "points": [
-        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1095 prices compared).",
-        "Buying whenever Kalshi was 3+ points cheaper than the books: 6 bets, 2 won, -5.0% per bet after fees.",
-        "Cheap long shots (under 20\u00a2): 187 bets, 11% won, -3.8% per bet.",
+        "Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1122 prices compared).",
+        "Buying whenever Kalshi was 3+ points cheaper than the books: 7 bets, 2 won, -6.8% per bet after fees.",
+        "Cheap long shots (under 20\u00a2): 188 bets, 11% won, -3.9% per bet.",
         "Big favorites (70\u00a2 and up): 60 bets, 75% won, -4.8% per bet."
       ],
       "error": "",
-      "updated": "2026-11-22T18:06:58+00:00",
+      "updated": "2026-11-23T22:18:23+00:00",
       "buckets": [
         [
           0,
@@ -762,17 +762,17 @@
         ],
         [
           10,
-          150,
-          23.030000000000012,
+          151,
+          23.200000000000014,
           17,
-          -7.444999999999998
+          -7.624999999999997
         ],
         [
           20,
-          455,
-          114.01000000000005,
+          456,
+          114.24000000000005,
           109,
-          -11.24200000000001
+          -11.48500000000001
         ],
         [
           30,
@@ -797,10 +797,10 @@
         ],
         [
           60,
-          59,
-          37.83,
-          44,
-          5.195999999999998
+          60,
+          38.449999999999996,
+          45,
+          5.5589999999999975
         ],
         [
           70,
@@ -825,9 +825,9 @@
         ]
       ],
       "rule3": [
-        6,
+        7,
         2,
-        -0.29799999999999993
+        -0.478
       ]
     },
     {
@@ -928,22 +928,22 @@
   "pooled": [
     "## All leagues together",
     "",
-    "19,254 Kalshi markets from 8,001 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
+    "19,257 Kalshi markets from 8,002 games (NFL, College football / CFP, NBA, Premier League, Champions League, MLS, La Liga, Serie A, Bundesliga, Ligue 1).",
     "",
     "| Price | Markets | Average price | Actually won | Return per bet |",
     "| --- | --- | --- | --- | --- |",
     "| 0\u201310\u00a2 | 894 | 5% | 7% | +1.4% |",
-    "| 10\u201320\u00a2 | 2086 | 15% | 14% | -2.1% |",
-    "| 20\u201330\u00a2 | 4546 | 25% | 25% | -1.8% |",
+    "| 10\u201320\u00a2 | 2087 | 15% | 14% | -2.1% |",
+    "| 20\u201330\u00a2 | 4547 | 25% | 25% | -1.8% |",
     "| 30\u201340\u00a2 | 2968 | 34% | 34% | -2.1% |",
     "| 40\u201350\u00a2 | 2301 | 44% | 45% | -0.9% |",
     "| 50\u201360\u00a2 | 1895 | 55% | 53% | -3.4% |",
-    "| 60\u201370\u00a2 | 1692 | 64% | 62% | -3.6% |",
+    "| 60\u201370\u00a2 | 1693 | 64% | 62% | -3.6% |",
     "| 70\u201380\u00a2 | 1304 | 74% | 72% | -3.2% |",
     "| 80\u201390\u00a2 | 932 | 84% | 85% | -0.7% |",
     "| 90\u2013100\u00a2 | 636 | 95% | 96% | +0.7% |",
     "",
-    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 56 bets, 28 won, +5.2% per bet after fees.",
+    "Buying whenever Kalshi was 3+ points cheaper than the sportsbooks' closing line, in every league with sportsbook data: 57 bets, 28 won, +4.8% per bet after fees.",
     ""
   ]
 }

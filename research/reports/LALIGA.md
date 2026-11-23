@@ -1,6 +1,6 @@
-# Kalshi La Liga history test (Nov 22, 2026)
+# Kalshi La Liga history test (Nov 23, 2026)
 
-1511 finished winner markets, priced before each game.
+1520 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -9,12 +9,12 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 64 | 6% | 2% | -5.3% |
-| 10–20¢ | 179 | 15% | 16% | -0.5% |
-| 20–30¢ | 463 | 26% | 24% | -3.4% |
-| 30–40¢ | 382 | 33% | 31% | -3.8% |
-| 40–50¢ | 181 | 44% | 47% | +1.0% |
-| 50–60¢ | 112 | 54% | 53% | -3.6% |
-| 60–70¢ | 54 | 64% | 65% | -0.9% |
+| 10–20¢ | 180 | 15% | 16% | -0.5% |
+| 20–30¢ | 467 | 26% | 24% | -3.3% |
+| 30–40¢ | 383 | 33% | 31% | -3.9% |
+| 40–50¢ | 182 | 44% | 47% | +0.7% |
+| 50–60¢ | 113 | 54% | 53% | -3.1% |
+| 60–70¢ | 55 | 64% | 65% | -0.3% |
 | 70–80¢ | 41 | 74% | 76% | +0.0% |
 | 80–90¢ | 30 | 83% | 100% | +16.1% |
 | 90–100¢ | 5 | 91% | 100% | +8.2% |
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1478 Kalshi prices matched with closing sportsbook lines.
+1505 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.556, sportsbooks 0.556.
+Prediction error (log loss, lower is better): Kalshi 0.556, sportsbooks 0.555.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 81 | 32 | +1.3% |
+| Kalshi any points cheaper than the books | 84 | 33 | +1.4% |
 | Kalshi 3+ points cheaper than the books | 4 | 1 | -9.5% |
 | Kalshi 5+ points cheaper than the books | 0 | 0 | +0.0% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1437 | 1.8 pts | 26 | 15 | +10.5% |
-| 48 h | 1451 | 1.6 pts | 21 | 12 | +8.3% |
-| 24 h | 1463 | 1.4 pts | 13 | 7 | +6.0% |
-| 6 h | 1475 | 1.1 pts | 4 | 2 | -5.6% |
-| 1 h | 1478 | 1.0 pts | 4 | 1 | -9.5% |
+| 72 h | 1464 | 1.8 pts | 26 | 15 | +10.5% |
+| 48 h | 1478 | 1.6 pts | 21 | 12 | +8.3% |
+| 24 h | 1490 | 1.4 pts | 13 | 7 | +6.0% |
+| 6 h | 1502 | 1.2 pts | 4 | 2 | -5.6% |
+| 1 h | 1505 | 1.0 pts | 4 | 1 | -9.5% |

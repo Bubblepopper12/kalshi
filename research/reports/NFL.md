@@ -1,6 +1,6 @@
-# Kalshi NFL history test (Nov 22, 2026)
+# Kalshi NFL history test (Nov 23, 2026)
 
-1050 finished winner markets, priced before each game.
+1072 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -8,16 +8,16 @@ Buying at the pre-game ask price, including Kalshi's fee:
 
 | Price | Markets | Average price | Actually won | Return per bet |
 | --- | --- | --- | --- | --- |
-| 0–10¢ | 2 | 1% | 50% | +48.9% |
-| 10–20¢ | 48 | 15% | 6% | -9.4% |
-| 20–30¢ | 109 | 25% | 26% | -0.4% |
-| 30–40¢ | 167 | 35% | 40% | +3.2% |
-| 40–50¢ | 185 | 44% | 45% | -0.5% |
-| 50–60¢ | 168 | 55% | 49% | -7.3% |
-| 60–70¢ | 184 | 64% | 62% | -2.9% |
-| 70–80¢ | 121 | 74% | 72% | -3.7% |
-| 80–90¢ | 58 | 84% | 84% | -0.5% |
-| 90–100¢ | 8 | 90% | 100% | +9.0% |
+| 0–10¢ | 4 | 5% | 25% | +19.7% |
+| 10–20¢ | 50 | 15% | 6% | -9.7% |
+| 20–30¢ | 111 | 25% | 26% | +0.0% |
+| 30–40¢ | 170 | 35% | 40% | +3.1% |
+| 40–50¢ | 187 | 44% | 45% | -0.4% |
+| 50–60¢ | 169 | 55% | 50% | -7.0% |
+| 60–70¢ | 188 | 64% | 62% | -3.2% |
+| 70–80¢ | 123 | 74% | 72% | -4.0% |
+| 80–90¢ | 60 | 84% | 85% | +0.0% |
+| 90–100¢ | 10 | 91% | 100% | +8.6% |
 
 If cheap buckets win less often than their price, longshots are overpriced.
 
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from nflverse (closing moneylines).
 
-864 Kalshi prices matched with closing sportsbook lines.
+886 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.615, sportsbooks 0.609.
+Prediction error (log loss, lower is better): Kalshi 0.612, sportsbooks 0.606.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 84 | 65 | +0.3% |
+| Kalshi any points cheaper than the books | 87 | 68 | +0.7% |
 | Kalshi 3+ points cheaper than the books | 3 | 2 | +36.0% |
 | Kalshi 5+ points cheaper than the books | 2 | 1 | +48.9% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 862 | 2.3 pts | 33 | 25 | +12.0% |
-| 48 h | 862 | 1.9 pts | 20 | 13 | +1.5% |
-| 24 h | 862 | 1.6 pts | 11 | 9 | +10.6% |
-| 6 h | 862 | 1.3 pts | 7 | 4 | -11.6% |
-| 1 h | 862 | 1.2 pts | 1 | 1 | +10.3% |
+| 72 h | 884 | 2.3 pts | 34 | 25 | +10.8% |
+| 48 h | 884 | 1.9 pts | 20 | 13 | +1.5% |
+| 24 h | 884 | 1.6 pts | 11 | 9 | +10.6% |
+| 6 h | 884 | 1.3 pts | 7 | 4 | -11.6% |
+| 1 h | 884 | 1.2 pts | 1 | 1 | +10.3% |

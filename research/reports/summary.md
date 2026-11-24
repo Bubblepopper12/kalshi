@@ -52,9 +52,9 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## La Liga
 
-**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 4 times in 1,505 prices).**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 4 times in 1,508 prices).**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1505 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1508 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 4 bets, 1 won, -9.5% per bet after fees.
 - Cheap long shots (under 20¢): 244 bets, 12% won, -1.8% per bet.
 - Big favorites (70¢ and up): 76 bets, 87% won, +6.9% per bet.

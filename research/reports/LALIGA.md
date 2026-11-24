@@ -1,4 +1,4 @@
-# Kalshi La Liga history test (Nov 23, 2026)
+# Kalshi La Liga history test (Nov 24, 2026)
 
 1520 finished winner markets, priced before each game.
 
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1505 Kalshi prices matched with closing sportsbook lines.
+1508 Kalshi prices matched with closing sportsbook lines.
 
 Prediction error (log loss, lower is better): Kalshi 0.556, sportsbooks 0.555.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 84 | 33 | +1.4% |
+| Kalshi any points cheaper than the books | 85 | 33 | +0.9% |
 | Kalshi 3+ points cheaper than the books | 4 | 1 | -9.5% |
 | Kalshi 5+ points cheaper than the books | 0 | 0 | +0.0% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1464 | 1.8 pts | 26 | 15 | +10.5% |
-| 48 h | 1478 | 1.6 pts | 21 | 12 | +8.3% |
-| 24 h | 1490 | 1.4 pts | 13 | 7 | +6.0% |
-| 6 h | 1502 | 1.2 pts | 4 | 2 | -5.6% |
-| 1 h | 1505 | 1.0 pts | 4 | 1 | -9.5% |
+| 72 h | 1467 | 1.8 pts | 26 | 15 | +10.5% |
+| 48 h | 1481 | 1.6 pts | 21 | 12 | +8.3% |
+| 24 h | 1493 | 1.4 pts | 13 | 7 | +6.0% |
+| 6 h | 1505 | 1.2 pts | 4 | 2 | -5.6% |
+| 1 h | 1508 | 1.0 pts | 4 | 1 | -9.5% |

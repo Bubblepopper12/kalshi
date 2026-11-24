@@ -1,4 +1,4 @@
-# Kalshi Premier League history test (Nov 23, 2026)
+# Kalshi Premier League history test (Nov 24, 2026)
 
 1470 finished winner markets, priced before each game.
 
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1464 Kalshi prices matched with closing sportsbook lines.
+1467 Kalshi prices matched with closing sportsbook lines.
 
 Prediction error (log loss, lower is better): Kalshi 0.594, sportsbooks 0.594.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 82 | 30 | -3.0% |
+| Kalshi any points cheaper than the books | 83 | 31 | -2.2% |
 | Kalshi 3+ points cheaper than the books | 1 | 1 | +38.3% |
 | Kalshi 5+ points cheaper than the books | 0 | 0 | +0.0% |
 
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1464 | 1.8 pts | 22 | 10 | +6.2% |
-| 48 h | 1464 | 1.7 pts | 16 | 11 | +26.4% |
-| 24 h | 1464 | 1.7 pts | 20 | 9 | -0.3% |
-| 6 h | 1464 | 1.3 pts | 7 | 2 | -16.3% |
-| 1 h | 1464 | 1.0 pts | 1 | 1 | +38.3% |
+| 72 h | 1467 | 1.8 pts | 22 | 10 | +6.2% |
+| 48 h | 1467 | 1.7 pts | 16 | 11 | +26.4% |
+| 24 h | 1467 | 1.7 pts | 20 | 9 | -0.3% |
+| 6 h | 1467 | 1.3 pts | 7 | 2 | -16.3% |
+| 1 h | 1467 | 1.0 pts | 1 | 1 | +38.3% |

@@ -27,9 +27,9 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 ## Premier League
 
-**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 1 time in 1,464 prices).**
+**No edge: Kalshi priced games almost exactly like the sportsbooks (3+ points cheaper only 1 time in 1,467 prices).**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1464 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1467 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 1 bets, 1 won, +38.3% per bet after fees.
 - Cheap long shots (under 20¢): 207 bets, 14% won, -0.7% per bet.
 - Big favorites (70¢ and up): 52 bets, 71% won, -6.1% per bet.

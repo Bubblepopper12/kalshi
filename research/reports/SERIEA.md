@@ -1,4 +1,4 @@
-# Kalshi Serie A history test (Nov 23, 2026)
+# Kalshi Serie A history test (Nov 24, 2026)
 
 1500 finished winner markets, priced before each game.
 
@@ -25,9 +25,9 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1493 Kalshi prices matched with closing sportsbook lines.
+1496 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.558, sportsbooks 0.559.
+Prediction error (log loss, lower is better): Kalshi 0.559, sportsbooks 0.559.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
@@ -44,8 +44,8 @@ A big early gap that buying would have profited from means Kalshi lags the books
 
 | Before kickoff | Prices | Avg gap | Kalshi 3+ pts below close | Won | Return per bet |
 | --- | --- | --- | --- | --- | --- |
-| 72 h | 1464 | 1.9 pts | 33 | 16 | +6.6% |
-| 48 h | 1477 | 1.8 pts | 31 | 14 | +2.4% |
-| 24 h | 1486 | 1.6 pts | 27 | 13 | +3.1% |
-| 6 h | 1487 | 1.1 pts | 6 | 2 | -6.8% |
-| 1 h | 1493 | 1.0 pts | 2 | 0 | -30.4% |
+| 72 h | 1467 | 1.9 pts | 33 | 16 | +6.6% |
+| 48 h | 1480 | 1.8 pts | 31 | 14 | +2.4% |
+| 24 h | 1489 | 1.6 pts | 27 | 13 | +3.1% |
+| 6 h | 1490 | 1.1 pts | 6 | 2 | -6.8% |
+| 1 h | 1496 | 1.0 pts | 2 | 0 | -30.4% |

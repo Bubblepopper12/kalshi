@@ -1,6 +1,6 @@
-# Kalshi MLS history test (Nov 23, 2026)
+# Kalshi MLS history test (Nov 24, 2026)
 
-2082 finished winner markets, priced before each game.
+2085 finished winner markets, priced before each game.
 
 ## 1. Are cheap contracts overpriced? (longshot bias)
 
@@ -10,8 +10,8 @@ Buying at the pre-game ask price, including Kalshi's fee:
 | --- | --- | --- | --- | --- |
 | 0–10¢ | 4 | 8% | 0% | -8.6% |
 | 10–20¢ | 210 | 16% | 18% | +0.8% |
-| 20–30¢ | 888 | 25% | 25% | -1.1% |
-| 30–40¢ | 332 | 35% | 33% | -3.7% |
+| 20–30¢ | 889 | 25% | 25% | -1.1% |
+| 30–40¢ | 334 | 35% | 33% | -3.6% |
 | 40–50¢ | 292 | 44% | 42% | -3.6% |
 | 50–60¢ | 197 | 54% | 51% | -4.7% |
 | 60–70¢ | 116 | 64% | 63% | -2.6% |
@@ -25,13 +25,13 @@ If cheap buckets win less often than their price, longshots are overpriced.
 
 Closing lines from football-data.co.uk (Pinnacle closing odds).
 
-1824 Kalshi prices matched with closing sportsbook lines.
+1848 Kalshi prices matched with closing sportsbook lines.
 
-Prediction error (log loss, lower is better): Kalshi 0.594, sportsbooks 0.592.
+Prediction error (log loss, lower is better): Kalshi 0.595, sportsbooks 0.593.
 
 | Rule | Bets | Won | Return per bet |
 | --- | --- | --- | --- |
-| Kalshi any points cheaper than the books | 166 | 76 | +4.6% |
+| Kalshi any points cheaper than the books | 168 | 77 | +4.4% |
 | Kalshi 3+ points cheaper than the books | 34 | 20 | +9.6% |
 | Kalshi 5+ points cheaper than the books | 18 | 12 | +18.3% |
 

@@ -1,4 +1,4 @@
-# Kalshi La Liga history test (Nov 26, 2026)
+# Kalshi La Liga history test (Nov 27, 2026)
 
 1520 finished winner markets, priced before each game.
 

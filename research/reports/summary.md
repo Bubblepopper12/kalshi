@@ -45,7 +45,7 @@ Finished games since Aug 1, 2025. Every price is Kalshi's last price before the 
 
 **Worth watching: positive so far, but not enough bets to trust.**
 
-- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1848 prices compared).
+- Kalshi's pre-game prices were about as accurate as the sportsbooks' closing lines (1851 prices compared).
 - Buying whenever Kalshi was 3+ points cheaper than the books: 34 bets, 20 won, +9.6% per bet after fees.
 - Cheap long shots (under 20¢): 214 bets, 18% won, +0.6% per bet.
 - Big favorites (70¢ and up): 43 bets, 65% won, -10.2% per bet.

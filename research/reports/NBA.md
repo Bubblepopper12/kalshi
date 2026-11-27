@@ -1,4 +1,4 @@
-# Kalshi NBA history test (Nov 26, 2026)
+# Kalshi NBA history test (Nov 27, 2026)
 
 3394 finished winner markets, priced before each game.
 
